@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { outfit, libreBaskerville } from "@/styles/fonts";
+import TawkTo from "@/components/TawkTo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,7 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${libreBaskerville.variable}`}>
-      <body className="bg-navy-950 text-white grain-overlay">{children}</body>
+      <body className="bg-navy-950 text-white grain-overlay">
+        {children}
+        <TawkTo />
+      </body>
     </html>
   );
 }

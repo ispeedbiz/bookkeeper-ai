@@ -31,51 +31,43 @@ export async function POST(request: Request) {
       const subscriptionId = session.subscription as string;
       const customerId = session.customer as string;
       const userId = session.metadata?.userId;
-      const planType = session.metadata?.planType || "direct";
+      const planType = session.metadata?.planType || "essential";
 
       if (!userId || !subscriptionId) break;
 
       // Fetch full subscription details
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const priceId = subscription.items.data[0]?.price?.id;
-      const productId = subscription.items.data[0]?.price?.product as string;
+
+      // Extract period timestamps safely
+      const sub = subscription as unknown as Record<string, unknown>;
+      const periodStart = sub.current_period_start as number;
+      const periodEnd = sub.current_period_end as number;
+      const trialEnd = sub.trial_end as number | null;
 
       // Upsert subscription record
       await supabase.from("subscriptions").upsert(
         {
           user_id: userId,
           stripe_subscription_id: subscriptionId,
-          stripe_customer_id: customerId,
           stripe_price_id: priceId,
-          stripe_product_id: productId,
-          plan_type: planType,
-          status: subscription.status,
-          current_period_start: new Date(
-            subscription.current_period_start * 1000
-          ).toISOString(),
-          current_period_end: new Date(
-            subscription.current_period_end * 1000
-          ).toISOString(),
-          trial_start: subscription.trial_start
-            ? new Date(subscription.trial_start * 1000).toISOString()
+          plan: planType,
+          status: subscription.status === "canceled" ? "cancelled" : subscription.status,
+          current_period_start: new Date(periodStart * 1000).toISOString(),
+          current_period_end: new Date(periodEnd * 1000).toISOString(),
+          trial_ends_at: trialEnd
+            ? new Date(trialEnd * 1000).toISOString()
             : null,
-          trial_end: subscription.trial_end
-            ? new Date(subscription.trial_end * 1000).toISOString()
-            : null,
-          cancel_at: subscription.cancel_at
-            ? new Date(subscription.cancel_at * 1000).toISOString()
-            : null,
-          cancelled_at: subscription.canceled_at
-            ? new Date(subscription.canceled_at * 1000).toISOString()
-            : null,
+          cancel_at_period_end: subscription.cancel_at_period_end || false,
+          entity_limit: 1,
         },
         { onConflict: "user_id" }
       );
 
-      // Update profile subscription status
+      // Save stripe_customer_id to profile
       await supabase
         .from("profiles")
-        .update({ subscription_status: subscription.status })
+        .update({ stripe_customer_id: customerId })
         .eq("id", userId);
 
       // Log activity
@@ -92,68 +84,29 @@ export async function POST(request: Request) {
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const subscriptionId = subscription.id;
-      const userId = subscription.metadata?.userId;
 
-      if (!userId) {
-        // Try to find user by stripe subscription ID
-        const { data: sub } = await supabase
-          .from("subscriptions")
-          .select("user_id")
-          .eq("stripe_subscription_id", subscriptionId)
-          .single();
+      const sub = subscription as unknown as Record<string, unknown>;
+      const periodStart = sub.current_period_start as number;
+      const periodEnd = sub.current_period_end as number;
 
-        if (!sub) break;
+      // Find user by stripe subscription ID
+      const { data: existingSub } = await supabase
+        .from("subscriptions")
+        .select("user_id")
+        .eq("stripe_subscription_id", subscriptionId)
+        .single();
 
-        await supabase
-          .from("subscriptions")
-          .update({
-            status: subscription.status,
-            current_period_start: new Date(
-              subscription.current_period_start * 1000
-            ).toISOString(),
-            current_period_end: new Date(
-              subscription.current_period_end * 1000
-            ).toISOString(),
-            cancel_at: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
-              : null,
-            cancelled_at: subscription.canceled_at
-              ? new Date(subscription.canceled_at * 1000).toISOString()
-              : null,
-          })
-          .eq("stripe_subscription_id", subscriptionId);
-
-        await supabase
-          .from("profiles")
-          .update({ subscription_status: subscription.status })
-          .eq("id", sub.user_id);
-
-        break;
-      }
+      if (!existingSub) break;
 
       await supabase
         .from("subscriptions")
         .update({
-          status: subscription.status,
-          current_period_start: new Date(
-            subscription.current_period_start * 1000
-          ).toISOString(),
-          current_period_end: new Date(
-            subscription.current_period_end * 1000
-          ).toISOString(),
-          cancel_at: subscription.cancel_at
-            ? new Date(subscription.cancel_at * 1000).toISOString()
-            : null,
-          cancelled_at: subscription.canceled_at
-            ? new Date(subscription.canceled_at * 1000).toISOString()
-            : null,
+          status: subscription.status === "canceled" ? "cancelled" : subscription.status,
+          current_period_start: new Date(periodStart * 1000).toISOString(),
+          current_period_end: new Date(periodEnd * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end || false,
         })
-        .eq("user_id", userId);
-
-      await supabase
-        .from("profiles")
-        .update({ subscription_status: subscription.status })
-        .eq("id", userId);
+        .eq("stripe_subscription_id", subscriptionId);
 
       break;
     }
@@ -162,29 +115,23 @@ export async function POST(request: Request) {
       const subscription = event.data.object as Stripe.Subscription;
       const subscriptionId = subscription.id;
 
-      // Find user by subscription
-      const { data: sub } = await supabase
+      const { data: existingSub } = await supabase
         .from("subscriptions")
         .select("user_id")
         .eq("stripe_subscription_id", subscriptionId)
         .single();
 
-      if (sub) {
+      if (existingSub) {
         await supabase
           .from("subscriptions")
           .update({
             status: "cancelled",
-            cancelled_at: new Date().toISOString(),
+            cancel_at_period_end: true,
           })
           .eq("stripe_subscription_id", subscriptionId);
 
-        await supabase
-          .from("profiles")
-          .update({ subscription_status: "cancelled" })
-          .eq("id", sub.user_id);
-
         await supabase.from("activities").insert({
-          user_id: sub.user_id,
+          user_id: existingSub.user_id,
           type: "subscription_cancelled",
           description: "Subscription has been cancelled",
           metadata: { subscriptionId },
@@ -198,7 +145,6 @@ export async function POST(request: Request) {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
 
-      // Find user by customer ID
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
@@ -209,7 +155,7 @@ export async function POST(request: Request) {
         await supabase.from("activities").insert({
           user_id: profile.id,
           type: "payment_received",
-          description: `Payment of ${(invoice.amount_paid / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} received`,
+          description: `Payment of ${((invoice.amount_paid || 0) / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} received`,
           metadata: {
             invoiceId: invoice.id,
             amount: invoice.amount_paid,
@@ -234,12 +180,13 @@ export async function POST(request: Request) {
       if (profile) {
         await supabase.from("activities").insert({
           user_id: profile.id,
-          type: "payment_failed",
-          description: `Payment of ${(invoice.amount_due / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} failed`,
+          type: "payment_received",
+          description: `Payment of ${((invoice.amount_due || 0) / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} failed — please update payment method`,
           metadata: {
             invoiceId: invoice.id,
             amount: invoice.amount_due,
             currency: invoice.currency,
+            failed: true,
           },
         });
       }

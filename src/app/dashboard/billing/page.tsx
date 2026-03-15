@@ -615,11 +615,11 @@ export default function BillingPage() {
                             </p>
                           </div>
                         </div>
-                        {payment.metadata?.amount && (
+                        {payment.metadata && typeof payment.metadata === "object" && "amount" in payment.metadata && (
                           <span className="text-sm font-medium text-white">
                             {formatCurrency(
-                              payment.metadata.amount as number,
-                              (payment.metadata.currency as string) || "cad"
+                              Number(payment.metadata.amount),
+                              String((payment.metadata as Record<string, unknown>).currency || "cad")
                             )}
                           </span>
                         )}

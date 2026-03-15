@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Phone, Mail, MapPin, Send, Clock } from "lucide-react";
+import { Phone, Mail, MapPin, Send, Clock, Loader2 } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { COMPANY } from "@/lib/constants";
@@ -16,10 +16,39 @@ export default function ContactPage() {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formState.name,
+          email: formState.email,
+          company: formState.company,
+          message: formState.message,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,11 +80,17 @@ export default function ContactPage() {
                     Message Sent!
                   </h3>
                   <p className="mt-3 text-slate-400">
-                    We&apos;ll get back to you within 24 hours.
+                    Thank you! We&apos;ll get back to you within 24 hours.
                   </p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8">
+                  {error && (
+                    <div className="mb-6 rounded-xl border border-coral-400/30 bg-coral-400/10 px-4 py-3 text-sm text-coral-400">
+                      {error}
+                    </div>
+                  )}
+
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-slate-300">
@@ -163,10 +198,20 @@ export default function ContactPage() {
 
                   <button
                     type="submit"
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-3.5 font-semibold text-navy-950 transition-all hover:brightness-110"
+                    disabled={loading}
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-3.5 font-semibold text-navy-950 transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Send className="h-4 w-4" />
-                    Send Message
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Send Message
+                      </>
+                    )}
                   </button>
                 </form>
               )}
