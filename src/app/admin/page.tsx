@@ -51,14 +51,14 @@ const team = [
 
 const sideNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, active: true, href: "/admin" },
-  { label: "Work Queue", icon: ListTodo, active: false, href: "/admin" },
+  { label: "Work Queue", icon: ListTodo, active: false, href: "/admin/work-queue" },
   { label: "Clients", icon: Users, active: false, href: "/admin/users" },
-  { label: "Team", icon: Briefcase, active: false, href: "/admin" },
-  { label: "Documents", icon: FileText, active: false, href: "/admin" },
-  { label: "Analytics", icon: BarChart3, active: false, href: "/admin" },
-  { label: "Notifications", icon: Bell, active: false, href: "/admin" },
-  { label: "Security", icon: Shield, active: false, href: "/admin" },
-  { label: "Settings", icon: Settings, active: false, href: "/admin" },
+  { label: "Team", icon: Briefcase, active: false, href: "/admin/team" },
+  { label: "Documents", icon: FileText, active: false, href: "/admin/documents" },
+  { label: "Analytics", icon: BarChart3, active: false, href: "/admin/analytics" },
+  { label: "Notifications", icon: Bell, active: false, href: "/admin/notifications" },
+  { label: "Security", icon: Shield, active: false, href: "/admin/security" },
+  { label: "Settings", icon: Settings, active: false, href: "/admin/settings" },
 ];
 
 const statusColorMap: Record<string, string> = {
