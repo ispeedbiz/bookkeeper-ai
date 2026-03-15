@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { resend } from "@/lib/resend";
 
+// Escape HTML to prevent XSS in email templates
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Simple in-memory rate limiter for registration
 const registrationAttempts = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
@@ -182,7 +192,7 @@ export async function POST(request: Request) {
         html: `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #050a18; color: #e2e8f0; padding: 40px 24px; border-radius: 16px;">
             <h1 style="color: #2dd4bf; font-size: 28px; margin-bottom: 8px;">Welcome to BookkeeperAI!</h1>
-            <p style="color: #94a3b8; font-size: 16px; margin-bottom: 24px;">Hi ${fullName},</p>
+            <p style="color: #94a3b8; font-size: 16px; margin-bottom: 24px;">Hi ${escapeHtml(fullName)},</p>
             <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6;">
               Your 14-day free trial has started. You now have access to AI-powered bookkeeping
               that saves you time and keeps your finances accurate.
@@ -220,13 +230,13 @@ export async function POST(request: Request) {
           process.env.RESEND_FROM_EMAIL ||
           "BookkeeperAI <onboarding@resend.dev>",
         to: "catchjagdish@gmail.com",
-        subject: `New Signup: ${fullName} (${email})`,
+        subject: `New Signup: ${escapeHtml(fullName)} (${escapeHtml(email)})`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>New BookkeeperAI Signup</h2>
-            <p><strong>Name:</strong> ${fullName}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Company:</strong> ${companyName || "N/A"}</p>
+            <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+            <p><strong>Company:</strong> ${escapeHtml(companyName || "N/A")}</p>
             <p><strong>Plan:</strong> Essential (14-day trial)</p>
             <p><strong>Date:</strong> ${new Date().toISOString()}</p>
           </div>

@@ -182,7 +182,7 @@ export async function POST(request: Request) {
       if (profile) {
         await supabase.from("activities").insert({
           user_id: profile.id,
-          type: "payment_received",
+          type: "payment_failed",
           description: `⚠️ Payment of ${((invoice.amount_due || 0) / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} failed — please update payment method`,
           metadata: {
             invoiceId: invoice.id,

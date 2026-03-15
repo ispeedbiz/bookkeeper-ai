@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -15,6 +18,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get("entityId");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE), 10))
+    );
+    const offset = (page - 1) * limit;
 
     if (entityId) {
       // Verify entity belongs to user
@@ -32,11 +41,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const { data: documents, error } = await supabase
+      const { data: documents, error, count } = await supabase
         .from("documents")
-        .select("*")
+        .select("*", { count: "exact" })
         .eq("entity_id", entityId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) {
         console.error("Documents query error:", error);
@@ -46,7 +56,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({ documents });
+      return NextResponse.json({
+        documents,
+        pagination: { page, limit, total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) },
+      });
     }
 
     // Fetch all documents for user's entities
@@ -58,14 +71,18 @@ export async function GET(request: NextRequest) {
     const entityIds = entities?.map((e) => e.id) || [];
 
     if (entityIds.length === 0) {
-      return NextResponse.json({ documents: [] });
+      return NextResponse.json({
+        documents: [],
+        pagination: { page: 1, limit, total: 0, totalPages: 0 },
+      });
     }
 
-    const { data: documents, error } = await supabase
+    const { data: documents, error, count } = await supabase
       .from("documents")
-      .select("*")
+      .select("*", { count: "exact" })
       .in("entity_id", entityIds)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error("Documents query error:", error);
@@ -75,7 +92,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ documents });
+    return NextResponse.json({
+      documents,
+      pagination: { page, limit, total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) },
+    });
   } catch (error) {
     console.error("Documents API error:", error);
     return NextResponse.json(

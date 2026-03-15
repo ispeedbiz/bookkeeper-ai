@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
@@ -104,10 +104,10 @@ export default function AdminDashboard() {
     email: string;
   } | null>(null);
 
-  const supabase = createBrowserClient(
+  const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ), []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -351,9 +351,12 @@ export default function AdminDashboard() {
                           No documents
                         </p>
                       ) : (
-                        <button className="w-full rounded-lg border border-dashed border-navy-700 py-2 text-xs text-slate-500 hover:border-teal-400/30 hover:text-teal-400">
+                        <Link
+                          href="/admin/work-queue"
+                          className="block w-full rounded-lg border border-dashed border-navy-700 py-2 text-center text-xs text-slate-500 hover:border-teal-400/30 hover:text-teal-400"
+                        >
                           View all {col.count} items
-                        </button>
+                        </Link>
                       )}
                     </div>
                   </div>

@@ -6,18 +6,23 @@ export async function POST() {
     const supabase = await createServerSupabaseClient();
     await supabase.auth.signOut();
 
-    return NextResponse.json(
-      { success: true },
-      {
-        status: 200,
-        headers: {
-          "Set-Cookie": [
-            "sb-access-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
-            "sb-refresh-token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
-          ].join(", "),
-        },
-      }
-    );
+    const response = NextResponse.json({ success: true }, { status: 200 });
+
+    // Clear cookies individually — comma-separated Set-Cookie headers don't work
+    response.cookies.set("sb-access-token", "", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 0,
+    });
+    response.cookies.set("sb-refresh-token", "", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 0,
+    });
+
+    return response;
   } catch (err) {
     console.error("Logout error:", err);
     return NextResponse.json(

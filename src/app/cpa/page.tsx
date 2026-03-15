@@ -65,12 +65,12 @@ interface RecentActivity {
 }
 
 const sideNavItems = [
-  { label: "Overview", icon: LayoutDashboard, active: true },
-  { label: "Clients", icon: Users, active: false },
-  { label: "Documents", icon: FileText, active: false },
-  { label: "Analytics", icon: BarChart3, active: false },
-  { label: "Team", icon: Building2, active: false },
-  { label: "Settings", icon: Settings, active: false },
+  { label: "Overview", icon: LayoutDashboard, active: true, href: "/cpa" },
+  { label: "Clients", icon: Users, active: false, href: "/cpa" },
+  { label: "Documents", icon: FileText, active: false, href: "/cpa" },
+  { label: "Analytics", icon: BarChart3, active: false, href: "/cpa" },
+  { label: "Team", icon: Building2, active: false, href: "/cpa" },
+  { label: "Settings", icon: Settings, active: false, href: "/cpa" },
 ];
 
 export default function CPADashboard() {
@@ -334,7 +334,8 @@ export default function CPADashboard() {
           <ul className="space-y-1">
             {sideNavItems.map((item) => (
               <li key={item.label}>
-                <button
+                <Link
+                  href={item.href}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                     item.active
                       ? "bg-teal-500/10 text-teal-400"
@@ -343,7 +344,7 @@ export default function CPADashboard() {
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
@@ -361,9 +362,18 @@ export default function CPADashboard() {
                 {profile?.email || ""}
               </p>
             </div>
-            <Link href="/login" className="text-slate-500 hover:text-coral-400">
+            <button
+              onClick={async () => {
+                const supabase = createClient();
+                await fetch("/api/auth/logout", { method: "POST" });
+                await supabase.auth.signOut();
+                window.location.href = "/login";
+              }}
+              className="text-slate-500 hover:text-coral-400"
+              title="Sign out"
+            >
               <LogOut className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

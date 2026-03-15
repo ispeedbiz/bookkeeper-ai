@@ -111,6 +111,8 @@ const teamMembers: TeamMember[] = [
 
 export default function AdminTeam() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newMember, setNewMember] = useState({ name: "", role: "", email: "", phone: "", location: "Ahmedabad, India" });
 
   const activeCount = teamMembers.filter((m) => m.status === "Active").length;
   const avgAccuracy =
@@ -129,7 +131,10 @@ export default function AdminTeam() {
               SMS360S LLP — Offshore Bookkeeping Team
             </p>
           </div>
-          <button className="flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-medium text-navy-950 hover:bg-teal-300 transition-colors">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-teal-400 px-4 py-2.5 text-sm font-medium text-navy-950 hover:bg-teal-300 transition-colors"
+          >
             <UserPlus className="h-4 w-4" />
             Add Member
           </button>
@@ -267,6 +272,99 @@ export default function AdminTeam() {
                   <p className="text-2xl font-bold text-teal-400">{selectedMember.accuracy}</p>
                   <p className="text-xs text-slate-500">Accuracy</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Add Member Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-md rounded-2xl border border-navy-700/50 bg-navy-900 p-6 shadow-2xl">
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white">Add Team Member</h3>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="text-slate-400 hover:text-white text-xl"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Full Name</label>
+                  <input
+                    type="text"
+                    value={newMember.name}
+                    onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                    className="w-full rounded-lg border border-navy-600 bg-navy-800/50 px-3 py-2.5 text-sm text-white outline-none focus:border-teal-400/50"
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Role</label>
+                  <select
+                    value={newMember.role}
+                    onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                    className="w-full rounded-lg border border-navy-600 bg-navy-800/50 px-3 py-2.5 text-sm text-white outline-none focus:border-teal-400/50"
+                  >
+                    <option value="">Select role</option>
+                    <option value="Bookkeeper">Bookkeeper</option>
+                    <option value="Senior Bookkeeper">Senior Bookkeeper</option>
+                    <option value="Tax Specialist">Tax Specialist</option>
+                    <option value="Payroll Specialist">Payroll Specialist</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Email</label>
+                  <input
+                    type="email"
+                    value={newMember.email}
+                    onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                    className="w-full rounded-lg border border-navy-600 bg-navy-800/50 px-3 py-2.5 text-sm text-white outline-none focus:border-teal-400/50"
+                    placeholder="email@sms360s.com"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Phone</label>
+                  <input
+                    type="tel"
+                    value={newMember.phone}
+                    onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
+                    className="w-full rounded-lg border border-navy-600 bg-navy-800/50 px-3 py-2.5 text-sm text-white outline-none focus:border-teal-400/50"
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Location</label>
+                  <input
+                    type="text"
+                    value={newMember.location}
+                    onChange={(e) => setNewMember({ ...newMember, location: e.target.value })}
+                    className="w-full rounded-lg border border-navy-600 bg-navy-800/50 px-3 py-2.5 text-sm text-white outline-none focus:border-teal-400/50"
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 rounded-lg border border-navy-600 bg-navy-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-navy-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!newMember.name || !newMember.role || !newMember.email) return;
+                    // In production this would call an API endpoint
+                    // For now, show success feedback
+                    setShowAddModal(false);
+                    setNewMember({ name: "", role: "", email: "", phone: "", location: "Ahmedabad, India" });
+                    alert(`Team member "${newMember.name}" added successfully. In the full version, this will create the member via the API.`);
+                  }}
+                  disabled={!newMember.name || !newMember.role || !newMember.email}
+                  className="flex-1 rounded-lg bg-teal-400 px-4 py-2.5 text-sm font-semibold text-navy-950 hover:bg-teal-300 disabled:opacity-50"
+                >
+                  Add Member
+                </button>
               </div>
             </div>
           </div>

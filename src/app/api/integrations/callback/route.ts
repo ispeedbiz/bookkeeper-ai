@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { exchangeCodeForTokens as exchangeQBO } from "@/lib/integrations/quickbooks";
 import { exchangeCodeForTokens as exchangeXero } from "@/lib/integrations/xero";
 import { exchangeCodeForTokens as exchangeZoho } from "@/lib/integrations/zoho";
@@ -28,6 +28,31 @@ export async function GET(request: NextRequest) {
     } catch {
       return NextResponse.redirect(
         new URL("/dashboard/settings?error=invalid_state", request.url)
+      );
+    }
+
+    // CSRF protection: Verify the user in the state matches the authenticated user
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || user.id !== state.userId) {
+      console.error("OAuth CSRF: state userId does not match authenticated user");
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?error=auth_mismatch", request.url)
+      );
+    }
+
+    // Verify entity belongs to user
+    const { data: entity } = await supabase
+      .from("entities")
+      .select("id")
+      .eq("id", state.entityId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!entity) {
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?error=invalid_entity", request.url)
       );
     }
 

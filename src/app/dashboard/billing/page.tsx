@@ -30,15 +30,13 @@ type SubscriptionStatus =
 interface Subscription {
   id: string;
   stripe_subscription_id: string;
-  plan_type: string;
+  plan: string;
   status: SubscriptionStatus;
   stripe_price_id: string;
   current_period_start: string;
   current_period_end: string;
-  trial_start: string | null;
-  trial_end: string | null;
-  cancel_at: string | null;
-  cancelled_at: string | null;
+  trial_ends_at: string | null;
+  cancel_at_period_end: boolean;
 }
 
 interface Activity {
@@ -102,9 +100,9 @@ function getPlanName(priceId: string): string {
   return plan?.name || "Unknown Plan";
 }
 
-function getTrialDaysRemaining(trialEnd: string | null): number {
-  if (!trialEnd) return 0;
-  const end = new Date(trialEnd);
+function getTrialDaysRemaining(trialEndsAt: string | null): number {
+  if (!trialEndsAt) return 0;
+  const end = new Date(trialEndsAt);
   const now = new Date();
   const diff = end.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
@@ -218,7 +216,7 @@ export default function BillingPage() {
   };
 
   const trialDays = subscription
-    ? getTrialDaysRemaining(subscription.trial_end)
+    ? getTrialDaysRemaining(subscription.trial_ends_at)
     : 0;
   const status = subscription?.status || null;
   const statusInfo = status ? statusConfig[status] : null;
@@ -346,7 +344,7 @@ export default function BillingPage() {
                         <p className="mt-0.5 text-sm text-slate-400">
                           Your trial ends on{" "}
                           {new Date(
-                            subscription!.trial_end!
+                            subscription!.trial_ends_at!
                           ).toLocaleDateString("en-CA", {
                             month: "long",
                             day: "numeric",

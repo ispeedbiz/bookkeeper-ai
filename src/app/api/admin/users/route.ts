@@ -52,7 +52,7 @@ export async function GET() {
         const [subscriptionResult, entityCountResult] = await Promise.all([
           serviceClient
             .from("subscriptions")
-            .select("plan_name, status")
+            .select("plan, status")
             .eq("user_id", profile.id)
             .in("status", ["active", "trialing", "past_due"])
             .order("created_at", { ascending: false })
@@ -71,7 +71,7 @@ export async function GET() {
           company_name: profile.company_name,
           role: profile.role,
           created_at: profile.created_at,
-          plan: subscriptionResult.data?.plan_name || "Free",
+          plan: subscriptionResult.data?.plan || "Free",
           subscription_status: subscriptionResult.data?.status || "none",
           entity_count: entityCountResult.count ?? 0,
         };

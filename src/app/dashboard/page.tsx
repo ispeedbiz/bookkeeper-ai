@@ -366,20 +366,26 @@ export default function DashboardPage() {
                 </div>
                 <span className="font-medium text-white">Upload Document</span>
               </Link>
-              <button className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50">
+              <Link
+                href="/dashboard/documents"
+                className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50"
+              >
                 <div className="rounded-lg bg-cyan-400/10 p-2 text-cyan-400">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <span className="font-medium text-white">View Reports</span>
-              </button>
-              <button className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50">
+              </Link>
+              <Link
+                href="/contact"
+                className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50"
+              >
                 <div className="rounded-lg bg-gold-400/10 p-2 text-gold-400">
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <span className="font-medium text-white">
                   Message Bookkeeper
                 </span>
-              </button>
+              </Link>
             </div>
           </div>
 

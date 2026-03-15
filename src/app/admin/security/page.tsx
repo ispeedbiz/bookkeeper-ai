@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import {
@@ -29,10 +29,10 @@ export default function AdminSecurity() {
     { description: string; created_at: string }[]
   >([]);
 
-  const supabase = createBrowserClient(
+  const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ), []);
 
   const runChecks = useCallback(async () => {
     setLoading(true);
