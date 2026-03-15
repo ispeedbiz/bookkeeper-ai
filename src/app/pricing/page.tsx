@@ -125,7 +125,7 @@ export default function PricingPage() {
 
       <section className="relative pt-32 pb-20">
         <div className="absolute inset-0 gradient-mesh" />
-        <div className="relative mx-auto max-w-7xl px-6">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center">
             <h1 className="text-4xl font-bold sm:text-5xl">
               Simple, Transparent <span className="text-gradient">Pricing</span>

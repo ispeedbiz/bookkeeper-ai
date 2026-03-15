@@ -250,15 +250,15 @@ export default function AdminUsersPage() {
       )}
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-8">
-        <div className="mb-8 flex items-center justify-between">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">User Management</h1>
             <p className="mt-1 text-slate-400">
               Manage all users, roles, and subscriptions.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               onClick={handleExportAll}
               className="flex items-center gap-2 rounded-xl border border-navy-600 bg-navy-800/50 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-teal-400/50 hover:text-white"
@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-72 rounded-xl border border-navy-600 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50"
+                className="w-full rounded-xl border border-navy-600 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50 sm:w-72"
               />
             </div>
           </div>
@@ -317,8 +317,8 @@ export default function AdminUsersPage() {
             <span className="ml-3 text-slate-400">Loading users...</span>
           </div>
         ) : (
-          <div className="glass-card overflow-hidden rounded-xl">
-            <table className="w-full">
+          <div className="glass-card overflow-x-auto rounded-xl">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="border-b border-navy-700/50">
                   <th className="px-4 py-3 text-left">

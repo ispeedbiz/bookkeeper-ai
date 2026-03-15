@@ -16,6 +16,8 @@ import {
   Brain,
 } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import ExpenseChart from "@/components/dashboard/ExpenseChart";
+import MonthlyTrendChart from "@/components/dashboard/MonthlyTrendChart";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
@@ -253,9 +255,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-navy-950">
+      <div className="flex min-h-screen overflow-x-hidden bg-navy-950">
         <Sidebar active="Overview" />
-        <main className="ml-64 flex flex-1 items-center justify-center p-8">
+        <main className="ml-0 flex flex-1 items-center justify-center p-4 lg:ml-64 lg:p-8">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
             <p className="text-slate-400">Loading your dashboard...</p>
@@ -266,10 +268,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-navy-950">
+    <div className="flex min-h-screen overflow-x-hidden bg-navy-950">
       <Sidebar active="Overview" />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">
@@ -437,8 +439,8 @@ export default function DashboardPage() {
           <h2 className="mb-4 text-lg font-semibold text-white">
             Bookkeeping Pipeline - {currentMonth}
           </h2>
-          <div className="glass-card rounded-xl p-6">
-            <div className="flex items-center justify-between">
+          <div className="glass-card overflow-x-auto rounded-xl p-6">
+            <div className="flex min-w-[600px] items-center justify-between">
               {[
                 {
                   step: "Documents Received",
@@ -488,6 +490,47 @@ export default function DashboardPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Overview */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold text-white">
+            Financial Overview
+          </h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Expense Breakdown */}
+            <div className="glass-card rounded-xl p-6">
+              <h3 className="mb-5 text-sm font-medium text-slate-400">
+                Monthly Expense Breakdown
+              </h3>
+              <ExpenseChart
+                data={[
+                  { category: "Supplies", amount: 4200, color: "#2dd4bf" },
+                  { category: "Rent", amount: 8500, color: "#22d3ee" },
+                  { category: "Utilities", amount: 1800, color: "#fbbf24" },
+                  { category: "Marketing", amount: 3100, color: "#f97316" },
+                  { category: "Travel", amount: 2400, color: "#fb7185" },
+                ]}
+              />
+            </div>
+
+            {/* Monthly Trend */}
+            <div className="glass-card rounded-xl p-6">
+              <h3 className="mb-5 text-sm font-medium text-slate-400">
+                Income vs Expenses (Last 6 Months)
+              </h3>
+              <MonthlyTrendChart
+                data={[
+                  { month: "Oct", income: 18500, expenses: 14200 },
+                  { month: "Nov", income: 21000, expenses: 15800 },
+                  { month: "Dec", income: 19200, expenses: 17500 },
+                  { month: "Jan", income: 22800, expenses: 16300 },
+                  { month: "Feb", income: 24500, expenses: 18100 },
+                  { month: "Mar", income: 23100, expenses: 17200 },
+                ]}
+              />
             </div>
           </div>
         </div>

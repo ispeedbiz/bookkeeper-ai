@@ -85,17 +85,21 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createServiceRoleClient();
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL || "https://bookkeeper-ai.vercel.app";
 
-    // 1. Create auth user with email confirmed
+    // 1. Create auth user with email verification
     const { data: authData, error: authError } =
-      await supabase.auth.admin.createUser({
+      await supabase.auth.signUp({
         email,
         password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          company_name: companyName || "",
-          role: "client",
+        options: {
+          emailRedirectTo: `${origin}/api/auth/verify`,
+          data: {
+            full_name: fullName,
+            company_name: companyName || "",
+            role: "client",
+          },
         },
       });
 
@@ -107,6 +111,13 @@ export async function POST(request: Request) {
         );
       }
       return NextResponse.json({ error: authError.message }, { status: 400 });
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: "Registration failed. Please try again." },
+        { status: 500 }
+      );
     }
 
     const userId = authData.user.id;
@@ -246,7 +257,11 @@ export async function POST(request: Request) {
       console.error("Admin notification error:", adminEmailError);
     }
 
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({
+      success: true,
+      userId,
+      requiresEmailVerification: true,
+    });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(

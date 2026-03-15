@@ -69,7 +69,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-navy-950">
       <div className="absolute inset-0 gradient-mesh" />
 
-      <div className="relative z-10 w-full max-w-md px-6">
+      <div className="relative z-10 w-full max-w-md px-4 sm:px-6">
         <div className="text-center">
           <Link
             href="/"

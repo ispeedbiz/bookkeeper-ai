@@ -45,13 +45,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate state token with user/entity context
+    // Generate a random nonce for CSRF protection
+    const nonce = randomUUID();
+
+    // Generate state token with user/entity context and nonce
     const state = Buffer.from(
       JSON.stringify({
         userId: user.id,
         entityId,
         provider,
-        nonce: randomUUID(),
+        nonce,
       })
     ).toString("base64url");
 
@@ -74,7 +77,17 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    return NextResponse.json({ authUrl });
+    // Store nonce in a short-lived httpOnly cookie for verification on callback
+    const response = NextResponse.json({ authUrl });
+    response.cookies.set("oauth_nonce", nonce, {
+      maxAge: 600, // 10 minutes - enough time to complete OAuth flow
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Integration connect error:", error);
     return NextResponse.json(

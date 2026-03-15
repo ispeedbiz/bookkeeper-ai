@@ -14,6 +14,8 @@ import {
   User,
   Loader2,
   DollarSign,
+  Menu,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -37,6 +39,7 @@ const navItems = [
 
 export default function Sidebar({ active = "Overview" }: { active?: string }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState<string>("");
@@ -92,29 +95,55 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
   }
 
   return (
-    <aside
-      className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-navy-700/50 bg-navy-900/95 backdrop-blur-md transition-all duration-300 ${
-        collapsed ? "w-16" : "w-64"
-      }`}
-    >
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-navy-700/50 px-4">
-        {!collapsed && (
-          <Link href="/" className="text-lg font-bold text-gradient">
-            BookkeeperAI
-          </Link>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="rounded-lg p-1.5 text-slate-500 hover:bg-navy-800 hover:text-white"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-50 rounded-lg bg-navy-800 p-2 text-slate-400 hover:text-white lg:hidden"
+        aria-label="Open sidebar"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-navy-700/50 bg-navy-900/95 backdrop-blur-md transition-all duration-300 ${
+          collapsed ? "w-16" : "w-64"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+      >
+        {/* Logo */}
+        <div className="flex h-16 items-center justify-between border-b border-navy-700/50 px-4">
+          {!collapsed && (
+            <Link href="/" className="text-lg font-bold text-gradient">
+              BookkeeperAI
+            </Link>
           )}
-        </button>
-      </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-navy-800 hover:text-white lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden rounded-lg p-1.5 text-slate-500 hover:bg-navy-800 hover:text-white lg:block"
+            >
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
 
       {/* Entity Switcher */}
       {!collapsed && (
@@ -152,6 +181,7 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
                     : "text-slate-400 hover:bg-navy-800 hover:text-white"
                 }`}
                 title={collapsed ? item.label : undefined}
+                onClick={() => setMobileOpen(false)}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {!collapsed && item.label}
@@ -198,5 +228,6 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
         </div>
       </div>
     </aside>
+    </>
   );
 }

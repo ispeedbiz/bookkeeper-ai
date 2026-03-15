@@ -5,6 +5,32 @@ import { exchangeCodeForTokens as exchangeXero } from "@/lib/integrations/xero";
 import { exchangeCodeForTokens as exchangeZoho } from "@/lib/integrations/zoho";
 
 /**
+ * Validate that a redirect URL is safe (same-origin only).
+ * Prevents open redirect attacks by ensuring the URL starts with the app origin.
+ */
+function isSafeRedirect(url: string, origin: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Build a safe redirect URL. Falls back to /dashboard/settings if the URL is not same-origin.
+ */
+function safeRedirectUrl(path: string, request: NextRequest): URL {
+  const target = new URL(path, request.url);
+  const origin = request.nextUrl.origin;
+  if (isSafeRedirect(target.toString(), origin)) {
+    return target;
+  }
+  return new URL("/dashboard/settings", request.url);
+}
+
+/**
  * GET /api/integrations/callback?code=...&state=...&realmId=...
  * Handles OAuth callback from accounting software providers.
  * Stores tokens securely and updates entity integration status.
@@ -17,17 +43,26 @@ export async function GET(request: NextRequest) {
 
     if (!code || !stateParam) {
       return NextResponse.redirect(
-        new URL("/dashboard/settings?error=missing_params", request.url)
+        safeRedirectUrl("/dashboard/settings?error=missing_params", request)
       );
     }
 
     // Decode state
-    let state: { userId: string; entityId: string; provider: string };
+    let state: { userId: string; entityId: string; provider: string; nonce: string };
     try {
       state = JSON.parse(Buffer.from(stateParam, "base64url").toString());
     } catch {
       return NextResponse.redirect(
-        new URL("/dashboard/settings?error=invalid_state", request.url)
+        safeRedirectUrl("/dashboard/settings?error=invalid_state", request)
+      );
+    }
+
+    // CSRF protection: Verify nonce from state matches the one stored in cookie
+    const storedNonce = request.cookies.get("oauth_nonce")?.value;
+    if (!state.nonce || !storedNonce || state.nonce !== storedNonce) {
+      console.error("OAuth CSRF: nonce mismatch");
+      return NextResponse.redirect(
+        safeRedirectUrl("/dashboard/settings?error=csrf_failed", request)
       );
     }
 
@@ -38,7 +73,7 @@ export async function GET(request: NextRequest) {
     if (!user || user.id !== state.userId) {
       console.error("OAuth CSRF: state userId does not match authenticated user");
       return NextResponse.redirect(
-        new URL("/dashboard/settings?error=auth_mismatch", request.url)
+        safeRedirectUrl("/dashboard/settings?error=auth_mismatch", request)
       );
     }
 
@@ -52,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     if (!entity) {
       return NextResponse.redirect(
-        new URL("/dashboard/settings?error=invalid_entity", request.url)
+        safeRedirectUrl("/dashboard/settings?error=invalid_entity", request)
       );
     }
 
@@ -72,7 +107,7 @@ export async function GET(request: NextRequest) {
         break;
       default:
         return NextResponse.redirect(
-          new URL("/dashboard/settings?error=unknown_provider", request.url)
+          safeRedirectUrl("/dashboard/settings?error=unknown_provider", request)
         );
     }
 
@@ -115,9 +150,18 @@ export async function GET(request: NextRequest) {
       metadata: { provider: state.provider },
     });
 
-    return NextResponse.redirect(
-      new URL(`/dashboard/settings?connected=${state.provider}`, request.url)
+    // Clear the nonce cookie and redirect to settings
+    const response = NextResponse.redirect(
+      safeRedirectUrl(`/dashboard/settings?connected=${state.provider}`, request)
     );
+    response.cookies.set("oauth_nonce", "", {
+      maxAge: 0,
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
+    return response;
   } catch (error) {
     console.error("Integration callback error:", error);
     return NextResponse.redirect(

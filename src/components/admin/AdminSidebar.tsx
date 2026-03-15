@@ -18,6 +18,8 @@ import {
   Shield,
   ClipboardList,
   Loader2,
+  Menu,
+  X,
 } from "lucide-react";
 
 const sideNavItems = [
@@ -36,6 +38,7 @@ const sideNavItems = [
 export default function AdminSidebar({ active = "Dashboard" }: { active?: string }) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{
     full_name: string;
     email: string;
@@ -70,15 +73,41 @@ export default function AdminSidebar({ active = "Dashboard" }: { active?: string
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-navy-700/50 bg-navy-900/95 backdrop-blur-md">
-      <div className="flex h-16 items-center border-b border-navy-700/50 px-6">
-        <Link href="/" className="text-lg font-bold text-gradient">
-          BookkeeperAI
-        </Link>
-        <span className="ml-2 rounded bg-coral-400/10 px-2 py-0.5 text-xs font-medium text-coral-400">
-          Admin
-        </span>
-      </div>
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-50 rounded-lg bg-navy-800 p-2 text-slate-400 hover:text-white lg:hidden"
+        aria-label="Open sidebar"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-navy-700/50 bg-navy-900/95 backdrop-blur-md transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
+        <div className="flex h-16 items-center justify-between border-b border-navy-700/50 px-6">
+          <div className="flex items-center">
+            <Link href="/" className="text-lg font-bold text-gradient">
+              BookkeeperAI
+            </Link>
+            <span className="ml-2 rounded bg-coral-400/10 px-2 py-0.5 text-xs font-medium text-coral-400">
+              Admin
+            </span>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-navy-800 hover:text-white lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       <nav className="flex-1 overflow-y-auto p-3">
         <ul className="space-y-1">
           {sideNavItems.map((item) => (
@@ -90,6 +119,7 @@ export default function AdminSidebar({ active = "Dashboard" }: { active?: string
                     ? "bg-teal-500/10 text-teal-400"
                     : "text-slate-400 hover:bg-navy-800 hover:text-white"
                 }`}
+                onClick={() => setMobileOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
@@ -126,5 +156,6 @@ export default function AdminSidebar({ active = "Dashboard" }: { active?: string
         </div>
       </div>
     </aside>
+    </>
   );
 }
