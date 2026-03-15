@@ -197,7 +197,7 @@ export default function SettingsPage() {
     <div className="flex min-h-screen bg-navy-950">
       <Sidebar active="Settings" />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">

@@ -16,6 +16,7 @@ import {
   Brain,
 } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import OnboardingChecklist from "@/components/dashboard/OnboardingChecklist";
 import ExpenseChart from "@/components/dashboard/ExpenseChart";
 import MonthlyTrendChart from "@/components/dashboard/MonthlyTrendChart";
 import { createClient } from "@/lib/supabase/client";
@@ -284,6 +285,9 @@ export default function DashboardPage() {
             Here&apos;s what&apos;s happening with your books today.
           </p>
         </div>
+
+        {/* Onboarding Checklist */}
+        <OnboardingChecklist />
 
         {/* Status Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

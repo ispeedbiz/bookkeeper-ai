@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react";
+import { LogIn, Eye, EyeOff, Loader2, Mail, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -13,10 +13,40 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("Enter your email address first, then click resend.");
+      return;
+    }
+    setResendLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setResendSuccess(true);
+        setError("");
+        setTimeout(() => setResendSuccess(false), 5000);
+      }
+    } catch {
+      setError("Failed to resend verification email.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowResendVerification(false);
     setLoading(true);
 
     try {
@@ -28,10 +58,21 @@ export default function LoginPage() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        const msg = signInError.message.toLowerCase();
+        if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
+          setError("Your email has not been verified yet. Check your inbox or resend the verification link.");
+          setShowResendVerification(true);
+        } else if (msg.includes("invalid login credentials")) {
+          setError("Invalid email or password. Please check and try again.");
+        } else {
+          setError(signInError.message);
+        }
         setLoading(false);
         return;
       }
+
+      // Track login
+      fetch("/api/auth/track-login", { method: "POST" }).catch(() => {});
 
       // Fetch profile role to determine redirect
       const {
@@ -84,9 +125,31 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="mt-8 glass-card rounded-2xl p-8"
         >
+          {resendSuccess && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-teal-500/10 border border-teal-500/20 px-4 py-3 text-sm text-teal-400">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              Verification email sent! Check your inbox.
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 rounded-lg bg-coral-500/10 border border-coral-500/20 px-4 py-3 text-sm text-coral-400">
-              {error}
+              <p>{error}</p>
+              {showResendVerification && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="mt-2 flex items-center gap-1.5 text-teal-400 hover:text-teal-300 font-medium"
+                >
+                  {resendLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Mail className="h-3.5 w-3.5" />
+                  )}
+                  Resend Verification Email
+                </button>
+              )}
             </div>
           )}
 

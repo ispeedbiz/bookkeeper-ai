@@ -16,6 +16,9 @@ import {
   DollarSign,
   Menu,
   X,
+  Building2,
+  BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -31,8 +34,11 @@ interface UserProfile {
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Entities", icon: Building2, href: "/dashboard/entities" },
   { label: "Documents", icon: FileText, href: "/dashboard/documents" },
+  { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
   { label: "Payroll", icon: DollarSign, href: "/dashboard/payroll" },
+  { label: "Messages", icon: MessageSquare, href: "/dashboard/messages" },
   { label: "Billing", icon: CreditCard, href: "/dashboard/billing" },
   { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
@@ -99,7 +105,7 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-lg bg-navy-800 p-2 text-slate-400 hover:text-white lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-lg border border-navy-700/50 bg-navy-900/90 p-2 text-slate-400 backdrop-blur-sm hover:text-white lg:hidden"
         aria-label="Open sidebar"
       >
         <Menu className="h-5 w-5" />

@@ -91,13 +91,31 @@ const statusConfig: Record<
   },
 };
 
-function getPlanName(priceId: string): string {
+function getPlanName(priceId: string, planSlug?: string): string {
   const allPlans = [
     ...Object.values(STRIPE_PLANS.cpa),
     ...Object.values(STRIPE_PLANS.direct),
+    ...Object.values(STRIPE_PLANS.payroll),
   ];
-  const plan = allPlans.find((p) => p.priceId === priceId);
-  return plan?.name || "Unknown Plan";
+  const plan = allPlans.find((p) => p.priceId && p.priceId === priceId);
+  if (plan) return plan.name;
+
+  if (planSlug) {
+    const slugMap: Record<string, string> = {
+      starter: "CPA Starter",
+      growth: "CPA Growth",
+      enterprise: "CPA Enterprise",
+      essential: "Essential",
+      professional: "Professional",
+      premium: "Premium",
+      payroll_starter: "Payroll Starter",
+      payroll_pro: "Payroll Pro",
+      payroll_enterprise: "Payroll Enterprise",
+    };
+    return slugMap[planSlug] || planSlug.charAt(0).toUpperCase() + planSlug.slice(1);
+  }
+
+  return "Free Plan";
 }
 
 function getTrialDaysRemaining(trialEndsAt: string | null): number {
@@ -147,7 +165,19 @@ export default function BillingPage() {
           .limit(10),
       ]);
 
-      if (profileRes.data) setProfile(profileRes.data);
+      // Count actual entities for usage display
+      const { count: actualEntityCount } = await supabase
+        .from("entities")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if (profileRes.data) {
+        setProfile({
+          ...profileRes.data,
+          entity_count: actualEntityCount ?? 0,
+          entity_limit: subRes.data?.entity_limit ?? 1,
+        });
+      }
       if (subRes.data) setSubscription(subRes.data);
       if (paymentsRes.data) setPayments(paymentsRes.data);
     } catch (error) {
@@ -226,7 +256,7 @@ export default function BillingPage() {
     <div className="flex min-h-screen bg-navy-950">
       <Sidebar active="Billing" />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Billing & Subscription</h1>
@@ -262,8 +292,32 @@ export default function BillingPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+          <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="glass-card animate-pulse rounded-xl p-6 lg:col-span-2">
+                <div className="h-5 w-32 rounded bg-navy-800" />
+                <div className="mt-4 h-8 w-48 rounded bg-navy-800" />
+                <div className="mt-3 h-4 w-64 rounded bg-navy-800" />
+              </div>
+              <div className="glass-card animate-pulse rounded-xl p-6">
+                <div className="h-5 w-28 rounded bg-navy-800" />
+                <div className="mt-4 h-10 w-20 rounded bg-navy-800" />
+                <div className="mt-3 h-2 w-full rounded-full bg-navy-800" />
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="glass-card animate-pulse rounded-xl p-6">
+                  <div className="h-5 w-24 rounded bg-navy-800" />
+                  <div className="mt-2 h-8 w-32 rounded bg-navy-800" />
+                  <div className="mt-4 space-y-2">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="h-3 rounded bg-navy-800" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
@@ -281,7 +335,7 @@ export default function BillingPage() {
                     {subscription ? (
                       <div className="mt-4">
                         <p className="text-2xl font-bold text-white">
-                          {getPlanName(subscription.stripe_price_id)}
+                          {getPlanName(subscription.stripe_price_id, subscription.plan)}
                         </p>
                         <div className="mt-2 flex items-center gap-3">
                           {statusInfo && (

@@ -9,6 +9,14 @@ const PUBLIC_ROUTES = [
   "/contact",
   "/login",
   "/get-started",
+  "/signup",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/terms",
+  "/privacy",
+  "/payroll",
+  "/onboarding",
   "/admin/login",
 ];
 

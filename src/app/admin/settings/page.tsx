@@ -37,7 +37,7 @@ export default function AdminSettings() {
       icon: Mail,
       fields: [
         { label: "From Email", value: "BookkeeperAI <onboarding@resend.dev>", type: "text" },
-        { label: "API Key", value: "re_7wA5n***", type: "password", disabled: true },
+        { label: "API Key Status", value: "Connected", type: "text", disabled: true },
         { label: "Admin Notification", value: "catchjagdish@gmail.com", type: "email" },
       ],
     },
@@ -46,8 +46,8 @@ export default function AdminSettings() {
       icon: CreditCard,
       fields: [
         { label: "Mode", value: "Test", type: "text", disabled: true },
-        { label: "Secret Key", value: "rk_test_***", type: "password", disabled: true },
-        { label: "Webhook Secret", value: "whsec_***", type: "password", disabled: true },
+        { label: "Secret Key", value: "Connected", type: "text", disabled: true },
+        { label: "Webhook", value: "Connected", type: "text", disabled: true },
         { label: "Trial Period", value: "14 days", type: "text" },
       ],
     },
@@ -55,7 +55,7 @@ export default function AdminSettings() {
       title: "Database (Supabase)",
       icon: Database,
       fields: [
-        { label: "Project URL", value: "https://ewkfsvmlylhsndyvfaip.supabase.co", type: "url", disabled: true },
+        { label: "Status", value: "Connected", type: "text", disabled: true },
         { label: "Region", value: "us-east-1", type: "text", disabled: true },
         { label: "RLS Enabled", value: "Yes - All tables", type: "text", disabled: true },
       ],
@@ -67,7 +67,7 @@ export default function AdminSettings() {
         { label: "New Signup Alerts", value: "enabled", type: "text" },
         { label: "Payment Alerts", value: "enabled", type: "text" },
         { label: "Error Alerts", value: "enabled", type: "text" },
-        { label: "Tawk.to Chat", value: "Enabled (Widget ID: 1jjnc208q)", type: "text", disabled: true },
+        { label: "Tawk.to Chat", value: "Enabled", type: "text", disabled: true },
       ],
     },
     {
@@ -90,7 +90,7 @@ export default function AdminSettings() {
   return (
     <div className="flex min-h-screen bg-navy-950">
       <AdminSidebar active="Settings" />
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Platform Settings</h1>

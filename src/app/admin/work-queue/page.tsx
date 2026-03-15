@@ -143,7 +143,7 @@ export default function AdminWorkQueue() {
   return (
     <div className="flex min-h-screen bg-navy-950">
       <AdminSidebar active="Work Queue" />
-      <main className="ml-64 flex-1 p-8">
+      <main className="ml-0 flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Work Queue</h1>
           <p className="mt-1 text-slate-400">
