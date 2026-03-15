@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const validRoles = ["client", "cpa", "admin", "employee"];
+    const validRoles = ["client", "cpa", "admin", "employee", "inactive"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: `Invalid role. Must be one of: ${validRoles.join(", ")}` },

@@ -6,6 +6,13 @@ import {
   Loader2,
   Search,
   ChevronDown,
+  Download,
+  UserX,
+  X,
+  AlertTriangle,
+  CheckSquare,
+  Square,
+  MinusSquare,
 } from "lucide-react";
 
 interface UserRow {
@@ -25,9 +32,49 @@ const roleBadgeStyles: Record<string, string> = {
   cpa: "bg-cyan-400/10 text-cyan-400",
   admin: "bg-coral-400/10 text-coral-400",
   employee: "bg-gold-400/10 text-gold-400",
+  inactive: "bg-slate-400/10 text-slate-500",
 };
 
 const validRoles = ["client", "cpa", "admin", "employee"];
+
+function exportUsersToCSV(users: UserRow[], filename: string) {
+  const headers = [
+    "Name",
+    "Email",
+    "Company",
+    "Role",
+    "Plan",
+    "Status",
+    "Entities",
+    "Joined",
+  ];
+  const rows = users.map((u) => [
+    u.full_name || "Unnamed",
+    u.email,
+    u.company_name || "",
+    u.role,
+    u.plan,
+    u.subscription_status,
+    String(u.entity_count),
+    new Date(u.created_at).toLocaleDateString(),
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    )
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -35,6 +82,9 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [updatingRole, setUpdatingRole] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -87,9 +137,117 @@ export default function AdminUsersPage() {
     );
   });
 
+  // Selection handlers
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredUsers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredUsers.map((u) => u.id)));
+    }
+  };
+
+  const selectedCount = selectedIds.size;
+  const allSelected = filteredUsers.length > 0 && selectedIds.size === filteredUsers.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < filteredUsers.length;
+
+  const handleExportSelected = () => {
+    const selected = users.filter((u) => selectedIds.has(u.id));
+    exportUsersToCSV(selected, `users-selected-${Date.now()}.csv`);
+  };
+
+  const handleExportAll = () => {
+    exportUsersToCSV(users, `users-all-${Date.now()}.csv`);
+  };
+
+  const handleDeactivateSelected = async () => {
+    setDeactivating(true);
+    try {
+      const promises = Array.from(selectedIds).map((userId) =>
+        fetch("/api/admin/users", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, role: "inactive" }),
+        })
+      );
+      await Promise.all(promises);
+      setUsers((prev) =>
+        prev.map((u) =>
+          selectedIds.has(u.id) ? { ...u, role: "inactive" } : u
+        )
+      );
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Failed to deactivate users:", err);
+    } finally {
+      setDeactivating(false);
+      setShowDeactivateModal(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-navy-950">
       <AdminSidebar active="Clients" />
+
+      {/* Deactivation Confirmation Modal */}
+      {showDeactivateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-card mx-4 w-full max-w-md rounded-xl p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-lg bg-coral-400/10 p-2">
+                <AlertTriangle className="h-5 w-5 text-coral-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                Confirm Deactivation
+              </h3>
+            </div>
+            <p className="mb-2 text-sm text-slate-400">
+              Are you sure you want to deactivate{" "}
+              <span className="font-medium text-white">{selectedCount}</span>{" "}
+              selected user{selectedCount !== 1 ? "s" : ""}?
+            </p>
+            <p className="mb-6 text-xs text-slate-500">
+              Their role will be set to &quot;inactive&quot; and they will lose access
+              to their accounts. This action can be reversed by changing their
+              role back.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeactivateModal(false)}
+                disabled={deactivating}
+                className="rounded-xl border border-navy-600 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeactivateSelected}
+                disabled={deactivating}
+                className="flex items-center gap-2 rounded-xl bg-coral-400/10 px-4 py-2 text-sm font-medium text-coral-400 transition-colors hover:bg-coral-400/20 disabled:opacity-50"
+              >
+                {deactivating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deactivating...
+                  </>
+                ) : (
+                  <>
+                    <UserX className="h-4 w-4" />
+                    Deactivate
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="ml-64 flex-1 p-8">
@@ -100,17 +258,58 @@ export default function AdminUsersPage() {
               Manage all users, roles, and subscriptions.
             </p>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-72 rounded-xl border border-navy-600 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50"
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportAll}
+              className="flex items-center gap-2 rounded-xl border border-navy-600 bg-navy-800/50 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-teal-400/50 hover:text-white"
+            >
+              <Download className="h-4 w-4" />
+              Export All
+            </button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-72 rounded-xl border border-navy-600 bg-navy-800/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50"
+              />
+            </div>
           </div>
         </div>
+
+        {/* Bulk Action Bar */}
+        {selectedCount > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-teal-400/20 bg-teal-500/5 px-4 py-3">
+            <span className="text-sm text-teal-400">
+              {selectedCount} user{selectedCount !== 1 ? "s" : ""} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportSelected}
+                className="flex items-center gap-1.5 rounded-lg bg-navy-800/50 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export Selected
+              </button>
+              <button
+                onClick={() => setShowDeactivateModal(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-coral-400/10 px-3 py-1.5 text-xs font-medium text-coral-400 transition-colors hover:bg-coral-400/20"
+              >
+                <UserX className="h-3.5 w-3.5" />
+                Deactivate Selected
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="ml-1 rounded-lg p-1.5 text-slate-500 transition-colors hover:text-white"
+                title="Clear selection"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
@@ -122,6 +321,21 @@ export default function AdminUsersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-navy-700/50">
+                  <th className="px-4 py-3 text-left">
+                    <button
+                      onClick={toggleSelectAll}
+                      className="text-slate-500 transition-colors hover:text-teal-400"
+                      title={allSelected ? "Deselect all" : "Select all"}
+                    >
+                      {allSelected ? (
+                        <CheckSquare className="h-4 w-4 text-teal-400" />
+                      ) : someSelected ? (
+                        <MinusSquare className="h-4 w-4 text-teal-400" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                     Name
                   </th>
@@ -152,7 +366,7 @@ export default function AdminUsersPage() {
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-4 py-12 text-center text-sm text-slate-500"
                     >
                       {searchQuery
@@ -161,88 +375,108 @@ export default function AdminUsersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="transition-colors hover:bg-navy-800/30"
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-white">
-                        {user.full_name || "Unnamed"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-400">
-                        {user.email}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-400">
-                        {user.company_name || "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {editingUserId === user.id ? (
-                          <div className="relative">
-                            <select
-                              defaultValue={user.role}
-                              disabled={updatingRole}
-                              onChange={(e) =>
-                                handleRoleChange(user.id, e.target.value)
-                              }
-                              onBlur={() => setEditingUserId(null)}
-                              className="appearance-none rounded-lg border border-navy-600 bg-navy-800 px-3 py-1.5 text-xs text-white outline-none focus:border-teal-400/50"
-                              autoFocus
-                            >
-                              {validRoles.map((r) => (
-                                <option key={r} value={r}>
-                                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500" />
-                          </div>
-                        ) : (
+                  filteredUsers.map((user) => {
+                    const isSelected = selectedIds.has(user.id);
+                    return (
+                      <tr
+                        key={user.id}
+                        className={`transition-colors hover:bg-navy-800/30 ${
+                          isSelected ? "bg-teal-500/5" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">
                           <button
-                            onClick={() => setEditingUserId(user.id)}
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              roleBadgeStyles[user.role] ||
-                              "bg-slate-400/10 text-slate-400"
-                            }`}
-                            title="Click to change role"
+                            onClick={() => toggleSelect(user.id)}
+                            className="text-slate-500 transition-colors hover:text-teal-400"
                           >
-                            {user.role.charAt(0).toUpperCase() +
-                              user.role.slice(1)}
+                            {isSelected ? (
+                              <CheckSquare className="h-4 w-4 text-teal-400" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
                           </button>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-400">
-                        {user.plan}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            user.subscription_status === "active"
-                              ? "bg-teal-500/10 text-teal-400"
-                              : user.subscription_status === "trialing"
-                                ? "bg-cyan-400/10 text-cyan-400"
-                                : user.subscription_status === "past_due"
-                                  ? "bg-coral-400/10 text-coral-400"
-                                  : "bg-slate-400/10 text-slate-500"
-                          }`}
-                        >
-                          {user.subscription_status === "none"
-                            ? "Free"
-                            : user.subscription_status.charAt(0).toUpperCase() +
-                              user.subscription_status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-400">
-                        {user.entity_count}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">
-                        {new Date(user.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-white">
+                          {user.full_name || "Unnamed"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {user.email}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {user.company_name || "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {editingUserId === user.id ? (
+                            <div className="relative">
+                              <select
+                                defaultValue={user.role}
+                                disabled={updatingRole}
+                                onChange={(e) =>
+                                  handleRoleChange(user.id, e.target.value)
+                                }
+                                onBlur={() => setEditingUserId(null)}
+                                className="appearance-none rounded-lg border border-navy-600 bg-navy-800 px-3 py-1.5 text-xs text-white outline-none focus:border-teal-400/50"
+                                autoFocus
+                              >
+                                {validRoles.map((r) => (
+                                  <option key={r} value={r}>
+                                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500" />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setEditingUserId(user.id)}
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                roleBadgeStyles[user.role] ||
+                                "bg-slate-400/10 text-slate-400"
+                              }`}
+                              title="Click to change role"
+                            >
+                              {user.role.charAt(0).toUpperCase() +
+                                user.role.slice(1)}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {user.plan}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              user.subscription_status === "active"
+                                ? "bg-teal-500/10 text-teal-400"
+                                : user.subscription_status === "trialing"
+                                  ? "bg-cyan-400/10 text-cyan-400"
+                                  : user.subscription_status === "past_due"
+                                    ? "bg-coral-400/10 text-coral-400"
+                                    : "bg-slate-400/10 text-slate-500"
+                            }`}
+                          >
+                            {user.subscription_status === "none"
+                              ? "Free"
+                              : user.subscription_status.charAt(0).toUpperCase() +
+                                user.subscription_status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {user.entity_count}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500">
+                          {new Date(user.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            }
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

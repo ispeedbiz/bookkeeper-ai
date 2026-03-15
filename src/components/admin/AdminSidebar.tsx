@@ -16,6 +16,7 @@ import {
   ListTodo,
   Bell,
   Shield,
+  ClipboardList,
   Loader2,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ const sideNavItems = [
   { label: "Team", icon: Briefcase, href: "/admin/team" },
   { label: "Documents", icon: FileText, href: "/admin/documents" },
   { label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+  { label: "Audit", icon: ClipboardList, href: "/admin/audit" },
   { label: "Notifications", icon: Bell, href: "/admin/notifications" },
   { label: "Security", icon: Shield, href: "/admin/security" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },

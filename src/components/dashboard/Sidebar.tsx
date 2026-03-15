@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   Loader2,
+  DollarSign,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,6 +30,7 @@ interface UserProfile {
 const navItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Documents", icon: FileText, href: "/dashboard/documents" },
+  { label: "Payroll", icon: DollarSign, href: "/dashboard/payroll" },
   { label: "Billing", icon: CreditCard, href: "/dashboard/billing" },
   { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
