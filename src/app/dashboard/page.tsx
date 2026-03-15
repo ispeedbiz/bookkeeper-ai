@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -13,9 +13,11 @@ import {
   CreditCard,
   ArrowUpRight,
   Loader2,
+  Brain,
 } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { createClient } from "@/lib/supabase/client";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface Profile {
   id: string;
@@ -56,17 +58,17 @@ export default function DashboardPage() {
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(async () => {
     const supabase = createClient();
-
-    async function fetchDashboardData() {
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) return;
+        setUserId(user.id);
 
         // Fetch profile
         const { data: profileData } = await supabase
@@ -145,10 +147,30 @@ export default function DashboardPage() {
       } finally {
         setLoading(false);
       }
-    }
-
-    fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Realtime: auto-refresh when documents change
+  useRealtimeSubscription<{ id: string; status: string; user_id: string }>({
+    table: "documents",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onInsert: () => fetchDashboardData(),
+    onUpdate: () => fetchDashboardData(),
+    enabled: !loading && !!userId,
+  });
+
+  // Realtime: live activity feed
+  useRealtimeSubscription<Activity>({
+    table: "activities",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onInsert: (activity) => {
+      setActivities((prev) => [activity, ...prev].slice(0, 10));
+    },
+    enabled: !loading && !!userId,
+  });
 
   const totalDocs =
     docCounts.uploaded +

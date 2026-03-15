@@ -9,9 +9,13 @@ import {
   Loader2,
   CloudUpload,
   X,
+  Brain,
+  Sparkles,
+  Eye,
 } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { createClient } from "@/lib/supabase/client";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 interface Entity {
   id: string;
@@ -28,6 +32,26 @@ interface Document {
   mime_type: string;
   created_at: string;
   entity_id: string;
+  ai_analysis?: {
+    documentType: string;
+    summary: string;
+    vendor?: string;
+    totalAmount?: number;
+    currency?: string;
+    transactions?: Array<{
+      date: string;
+      description: string;
+      amount: number;
+      category: string;
+      type: string;
+    }>;
+    confidence: number;
+  };
+  ai_confidence?: number;
+  ai_vendor?: string;
+  ai_total_amount?: number;
+  ai_analyzed_at?: string;
+  notes?: string;
 }
 
 const DOCUMENT_TYPES = [
@@ -71,6 +95,8 @@ export default function DocumentsPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -128,6 +154,45 @@ export default function DocumentsPage() {
 
     init();
   }, [fetchDocuments]);
+
+  // Realtime: auto-refresh when document status changes (e.g., AI processing complete)
+  useRealtimeSubscription<Document>({
+    table: "documents",
+    onUpdate: (updatedDoc) => {
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === updatedDoc.id ? { ...d, ...updatedDoc } : d))
+      );
+      // Update selected doc if it's the one being viewed
+      if (selectedDoc?.id === updatedDoc.id) {
+        setSelectedDoc((prev) => prev ? { ...prev, ...updatedDoc } : null);
+      }
+      if (updatedDoc.id === analyzingId) {
+        setAnalyzingId(null);
+      }
+    },
+    onInsert: () => fetchDocuments(),
+    enabled: !loading,
+  });
+
+  async function handleAnalyze(docId: string) {
+    setAnalyzingId(docId);
+    try {
+      const response = await fetch("/api/documents/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: docId }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setUploadError(data.error || "AI analysis failed");
+        setAnalyzingId(null);
+      }
+      // Don't reset analyzingId here — Realtime will do it when status updates
+    } catch {
+      setUploadError("AI analysis failed. Please try again.");
+      setAnalyzingId(null);
+    }
+  }
 
   async function handleUpload(file: File) {
     if (!selectedEntity) {
@@ -434,7 +499,28 @@ export default function DocumentsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
+                          {doc.ai_analyzed_at ? (
+                            <button
+                              onClick={() => setSelectedDoc(doc)}
+                              className="rounded-lg p-1.5 text-purple-400 transition-colors hover:bg-purple-500/10"
+                              title="View AI Analysis"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          ) : doc.status === "processing" || analyzingId === doc.id ? (
+                            <span className="rounded-lg p-1.5 text-cyan-400" title="AI Processing...">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleAnalyze(doc.id)}
+                              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-purple-500/10 hover:text-purple-400"
+                              title="Run AI Analysis"
+                            >
+                              <Brain className="h-4 w-4" />
+                            </button>
+                          )}
                           <a
                             href={doc.file_url}
                             target="_blank"
@@ -460,6 +546,101 @@ export default function DocumentsPage() {
             </div>
           )}
         </div>
+
+        {/* AI Analysis Panel (slide-over) */}
+        {selectedDoc && selectedDoc.ai_analysis && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setSelectedDoc(null)}
+            />
+            <div className="relative w-full max-w-lg overflow-y-auto bg-navy-900 border-l border-navy-700/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+                  <Sparkles className="h-5 w-5 text-purple-400" />
+                  AI Analysis
+                </h2>
+                <button
+                  onClick={() => setSelectedDoc(null)}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-navy-800 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Document Info */}
+              <div className="glass-card rounded-xl p-4 mb-4">
+                <p className="text-sm font-medium text-white">{selectedDoc.file_name}</p>
+                <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+                  <span>Type: <span className="text-teal-400 capitalize">{selectedDoc.ai_analysis.documentType}</span></span>
+                  <span>Confidence: <span className="text-teal-400">{Math.round((selectedDoc.ai_analysis.confidence || 0) * 100)}%</span></span>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-slate-400 mb-2">Summary</h3>
+                <p className="text-sm text-white leading-relaxed">{selectedDoc.ai_analysis.summary}</p>
+              </div>
+
+              {/* Key Details */}
+              {(selectedDoc.ai_analysis.vendor || selectedDoc.ai_analysis.totalAmount) && (
+                <div className="glass-card rounded-xl p-4 mb-4">
+                  <h3 className="text-sm font-medium text-slate-400 mb-3">Extracted Details</h3>
+                  <div className="space-y-2">
+                    {selectedDoc.ai_analysis.vendor && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Vendor</span>
+                        <span className="text-white font-medium">{selectedDoc.ai_analysis.vendor}</span>
+                      </div>
+                    )}
+                    {selectedDoc.ai_analysis.totalAmount && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Total Amount</span>
+                        <span className="text-teal-400 font-semibold">
+                          ${selectedDoc.ai_analysis.totalAmount.toFixed(2)} {selectedDoc.ai_analysis.currency || "CAD"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Extracted Transactions */}
+              {selectedDoc.ai_analysis.transactions && selectedDoc.ai_analysis.transactions.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-slate-400 mb-3">
+                    Extracted Transactions ({selectedDoc.ai_analysis.transactions.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedDoc.ai_analysis.transactions.map((t, i) => (
+                      <div key={i} className="glass-card rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-white">{t.description}</span>
+                          <span className={`text-sm font-semibold ${t.type === "credit" ? "text-teal-400" : "text-coral-400"}`}>
+                            {t.type === "credit" ? "+" : "-"}${t.amount.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                          <span>{t.date}</span>
+                          <span className="rounded bg-navy-700 px-1.5 py-0.5">{t.category}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedDoc.notes && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-2">Notes</h3>
+                  <p className="text-sm text-slate-300">{selectedDoc.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

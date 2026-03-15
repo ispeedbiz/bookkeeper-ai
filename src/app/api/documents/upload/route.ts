@@ -138,6 +138,21 @@ export async function POST(request: NextRequest) {
       console.error("Email notification error:", emailError);
     }
 
+    // Trigger AI analysis in the background (non-blocking)
+    try {
+      const analyzeUrl = new URL("/api/documents/analyze", request.url);
+      fetch(analyzeUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: request.headers.get("cookie") || "",
+        },
+        body: JSON.stringify({ documentId: document.id }),
+      }).catch((err) => console.error("AI analysis trigger error:", err));
+    } catch (aiTriggerError) {
+      console.error("Failed to trigger AI analysis:", aiTriggerError);
+    }
+
     return NextResponse.json({ document }, { status: 201 });
   } catch (error) {
     console.error("Upload error:", error);
