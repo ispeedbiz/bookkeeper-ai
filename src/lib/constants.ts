@@ -2,14 +2,14 @@ export const COMPANY = {
   name: "BookkeeperAI",
   tagline: "Your AI Bookkeeper That Never Sleeps",
   description:
-    "AI-powered bookkeeping outsourcing platform connecting CPAs and businesses with expert offshore accountants. Clean books delivered in 3 business days.",
+    "AI-powered bookkeeping & payroll outsourcing platform connecting CPAs and businesses with expert offshore accountants. Clean books delivered in 3 business days.",
   phone: {
     india: "+91 95 575 99 575",
-    us: "+1 (347) 479 1767",
+    us: "+1 (437) 256-0007",
   },
-  email: "accounts@sms360s.com",
-  website: "sms360s.com",
-  address: "Satellite, Ahmedabad, Gujarat, INDIA",
+  email: "support@bookkeeperai.ca",
+  website: "bookkeeperai.ca",
+  address: "Mississauga, Canada | Satellite, Ahmedabad, Gujarat, INDIA",
   founded: 2012,
 } as const;
 
@@ -26,13 +26,13 @@ export const SERVICES = [
     title: "Bookkeeping",
     description: "Monthly & yearly bookkeeping across all major platforms",
     icon: "BookOpen",
-    experience: "19 Years",
+    experience: "22+ Years",
   },
   {
     title: "Reconciliations",
     description: "Bank, intercompany, and GL reconciliation with AI matching",
     icon: "CheckCircle",
-    experience: "19 Years",
+    experience: "22+ Years",
   },
   {
     title: "Payroll Processing",
@@ -169,6 +169,54 @@ export const DIRECT_PRICING = [
   },
 ] as const;
 
+export const PAYROLL_PRICING = [
+  {
+    name: "Payroll Starter",
+    price: "CAD $99",
+    period: "/mo",
+    employees: "Up to 10 employees",
+    features: [
+      "Bi-weekly payroll processing",
+      "T4 / W-2 preparation",
+      "Direct deposit setup",
+      "Pay stub generation",
+      "Basic payroll reports",
+    ],
+    highlighted: false,
+  },
+  {
+    name: "Payroll Pro",
+    price: "CAD $199",
+    period: "/mo",
+    employees: "11-50 employees",
+    features: [
+      "Weekly or bi-weekly payroll",
+      "T4 / W-2 & ROE filing",
+      "Benefits & deductions management",
+      "Multi-province / multi-state",
+      "Year-end reconciliation",
+      "Dedicated payroll specialist",
+    ],
+    highlighted: true,
+  },
+  {
+    name: "Payroll Enterprise",
+    price: "CAD $399",
+    period: "/mo",
+    employees: "50+ employees",
+    features: [
+      "Unlimited pay runs",
+      "Full compliance management",
+      "Custom payroll integrations",
+      "Multi-entity payroll",
+      "Priority support & SLA",
+      "Quarterly payroll audits",
+      "Workers\' comp tracking",
+    ],
+    highlighted: false,
+  },
+] as const;
+
 export const STATS = [
   { value: "$11.59B", label: "Global Bookkeeping Market" },
   { value: "9.37%", label: "Market CAGR Growth" },
@@ -178,10 +226,10 @@ export const STATS = [
 
 export const TEAM = [
   {
-    name: "Jagdish Lade",
+    name: "Jagdish",
     role: "Co-Founder & CEO",
-    location: "Canada",
-    credentials: "Chartered Accountant (CA)",
+    location: "Mississauga, Canada",
+    credentials: "Chartered Accountant (CA) · 22+ Years Experience",
     focus: [
       "AI & Automation Expert",
       "Platform Architect",

@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Users } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import { CPA_PRICING, DIRECT_PRICING } from "@/lib/constants";
+import { CPA_PRICING, DIRECT_PRICING, PAYROLL_PRICING } from "@/lib/constants";
 
-function PricingCard({
-  plan,
-}: {
-  plan: (typeof CPA_PRICING)[number] | (typeof DIRECT_PRICING)[number];
-}) {
+type AnyPlan =
+  | (typeof CPA_PRICING)[number]
+  | (typeof DIRECT_PRICING)[number]
+  | (typeof PAYROLL_PRICING)[number];
+
+function PricingCard({ plan }: { plan: AnyPlan }) {
+  const subtitle = "entities" in plan ? plan.entities : "employees" in plan ? plan.employees : "";
   return (
     <div
       className={`relative rounded-2xl p-8 transition-all duration-300 ${
@@ -30,7 +32,7 @@ function PricingCard({
         <span className="text-4xl font-bold text-gradient">{plan.price}</span>
         <span className="text-sm text-slate-400">{plan.period}</span>
       </div>
-      <p className="mt-2 text-sm text-slate-400">{plan.entities}</p>
+      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
       {"bestFor" in plan && (
         <p className="mt-1 text-xs text-teal-400/70">Best for: {plan.bestFor}</p>
       )}
@@ -86,6 +88,10 @@ const faqs = [
     a: "Once you upload your documents, our team (powered by AI + expert accountants) processes your books within 3 business days. Our India-based team works overnight in your timezone, so you wake up to clean books.",
   },
   {
+    q: "What payroll services do you offer?",
+    a: "We handle end-to-end payroll processing for Canadian and US businesses. This includes bi-weekly/weekly pay runs, T4/W-2 preparation, ROE filing, benefits & deductions management, and year-end reconciliation. Plans are based on number of employees.",
+  },
+  {
     q: "Can I switch plans later?",
     a: "Absolutely. You can upgrade or downgrade at any time. Changes take effect on your next billing cycle. Enterprise clients get custom pricing based on volume.",
   },
@@ -104,7 +110,14 @@ const faqs = [
 ];
 
 export default function PricingPage() {
-  const [tab, setTab] = useState<"cpa" | "business">("cpa");
+  const [tab, setTab] = useState<"cpa" | "business" | "payroll">("cpa");
+
+  const plans =
+    tab === "cpa"
+      ? CPA_PRICING
+      : tab === "business"
+        ? DIRECT_PRICING
+        : PAYROLL_PRICING;
 
   return (
     <main className="min-h-screen bg-navy-950">
@@ -123,7 +136,8 @@ export default function PricingPage() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 flex max-w-sm rounded-xl bg-navy-800/50 p-1">
+          {/* 3-tab switcher */}
+          <div className="mx-auto mt-10 flex max-w-lg rounded-xl bg-navy-800/50 p-1">
             <button
               onClick={() => setTab("cpa")}
               className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
@@ -144,22 +158,40 @@ export default function PricingPage() {
             >
               For Businesses
             </button>
+            <button
+              onClick={() => setTab("payroll")}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                tab === "payroll"
+                  ? "bg-teal-500 text-navy-950"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Users className="mr-1.5 inline h-4 w-4" />
+              Payroll
+            </button>
           </div>
 
+          {/* Payroll headline */}
+          {tab === "payroll" && (
+            <p className="mx-auto mt-6 max-w-xl text-center text-sm text-slate-400">
+              Full-service payroll processing for Canadian &amp; US businesses.
+              Plans based on number of employees — scale as you grow.
+            </p>
+          )}
+
           <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {(tab === "cpa" ? CPA_PRICING : DIRECT_PRICING).map((plan) => (
+            {plans.map((plan) => (
               <PricingCard key={plan.name} plan={plan} />
             ))}
           </div>
 
           <div className="mt-20 text-center">
             <h2 className="text-2xl font-bold text-white">Add-On Services</h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { name: "Payroll Processing", price: "CAD $99/mo + $5/employee", margin: "~65% margin" },
-                { name: "Tax Filing Support", price: "CAD $199/filing", margin: "~70% margin" },
-                { name: "AI Financial Analysis", price: "CAD $149/mo", margin: "~80% margin" },
-                { name: "Custom Setup", price: "CAD $499 one-time", margin: "~75% margin" },
+                { name: "Tax Filing Support", price: "CAD $199/filing" },
+                { name: "AI Financial Analysis", price: "CAD $149/mo" },
+                { name: "Custom Setup & Migration", price: "CAD $499 one-time" },
               ].map((addon) => (
                 <div key={addon.name} className="glass-card rounded-xl p-6 text-center">
                   <h3 className="font-semibold text-white">{addon.name}</h3>

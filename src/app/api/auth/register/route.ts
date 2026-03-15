@@ -141,7 +141,7 @@ export async function POST(request: Request) {
               </ul>
             </div>
             <p style="color: #64748b; font-size: 13px; margin-top: 32px;">
-              Questions? Reply to this email or contact us at accounts@sms360s.com
+              Questions? Reply to this email or contact us at support@bookkeeperai.ca
             </p>
             <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0;" />
             <p style="color: #475569; font-size: 12px;">BookkeeperAI by SMS360S LLP</p>

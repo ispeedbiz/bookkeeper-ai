@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       if (recipientEmail) {
         await resend.emails.send({
-          from: "BookkeeperAI <noreply@sms360s.com>",
+          from: "BookkeeperAI <support@bookkeeperai.ca>",
           to: recipientEmail,
           subject: "Document Received - BookkeeperAI",
           html: `

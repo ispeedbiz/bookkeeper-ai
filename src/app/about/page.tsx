@@ -45,15 +45,6 @@ const values = [
   },
 ];
 
-const milestones = [
-  { year: "2006", event: "Hardik Mehta begins reconciliation and accounting career" },
-  { year: "2012", event: "SMS360S founded - remote offshore services for US businesses" },
-  { year: "2012", event: "Partnership with Sharda Paper, INC begins" },
-  { year: "2024", event: "Amit Amin Group of Companies partnership" },
-  { year: "2025", event: "Jash Packaging & Trishula (EATMEE) partnerships" },
-  { year: "2026", event: "BookkeeperAI platform launched - AI meets offshore excellence" },
-];
-
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-navy-950">
@@ -67,9 +58,10 @@ export default function AboutPage() {
               About <span className="text-gradient">BookkeeperAI</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-400">
-              We are a young company based out of Ahmedabad, with a decade of experience
-              enabling American businesses prosper and multiply. Our purpose is to analyse
-              and address any issues that disrupt your daily business operations.
+              Headquartered in Mississauga, Canada with operations in Ahmedabad, India —
+              we bring 22+ years of experience enabling North American businesses prosper
+              and multiply. Our purpose is to analyse and address any issues that disrupt
+              your daily business operations.
             </p>
           </div>
 
@@ -147,30 +139,6 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Timeline */}
-          <div className="mt-20">
-            <h2 className="mb-10 text-center text-2xl font-bold text-white">
-              Our Journey
-            </h2>
-            <div className="mx-auto max-w-2xl space-y-0">
-              {milestones.map((m, i) => (
-                <div key={`${m.year}-${i}`} className="flex gap-6">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-teal-400/30 bg-teal-500/10 text-sm font-bold text-teal-400">
-                      {m.year.slice(-2)}
-                    </div>
-                    {i < milestones.length - 1 && (
-                      <div className="w-px flex-1 bg-gradient-to-b from-teal-400/30 to-transparent" />
-                    )}
-                  </div>
-                  <div className="pb-10">
-                    <span className="text-sm font-bold text-teal-400">{m.year}</span>
-                    <p className="mt-1 text-slate-300">{m.event}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 

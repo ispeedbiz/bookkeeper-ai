@@ -6,7 +6,7 @@ const FOOTER_LINKS = {
   Services: [
     { label: "Bookkeeping", href: "/#services" },
     { label: "Reconciliations", href: "/#services" },
-    { label: "Payroll Processing", href: "/#services" },
+    { label: "Payroll Services", href: "/pricing?tab=payroll" },
     { label: "AI Analytics", href: "/#services" },
     { label: "Tax Support", href: "/#services" },
     { label: "Compliance & Risk", href: "/#services" },
