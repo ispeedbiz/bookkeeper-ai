@@ -40,7 +40,25 @@ export async function POST(request: Request) {
 
     const userId = authData.user.id;
 
-    // 2. Create entity (the profile is auto-created by the DB trigger)
+    // 2. Ensure profile exists (trigger should create it, but fallback if not)
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (!existingProfile) {
+      // Trigger may not have fired; create profile manually
+      await supabase.from("profiles").insert({
+        id: userId,
+        email,
+        full_name: fullName,
+        company_name: companyName || "",
+        role: "client",
+      });
+    }
+
+    // 3. Create entity
     const { data: entity, error: entityError } = await supabase
       .from("entities")
       .insert({
@@ -58,7 +76,7 @@ export async function POST(request: Request) {
 
     const entityId = entity?.id;
 
-    // 3. Create subscription with 14-day trial
+    // 4. Create subscription with 14-day trial
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
@@ -76,7 +94,7 @@ export async function POST(request: Request) {
       console.error("Subscription creation error:", subError);
     }
 
-    // 4. Log activity
+    // 5. Log activity
     const { error: activityError } = await supabase
       .from("activities")
       .insert({
@@ -90,7 +108,7 @@ export async function POST(request: Request) {
       console.error("Activity log error:", activityError);
     }
 
-    // 5. Send welcome email
+    // 6. Send welcome email
     const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://bookkeeper-ai.vercel.app"}/dashboard`;
 
     try {
@@ -134,7 +152,7 @@ export async function POST(request: Request) {
       console.error("Welcome email error:", emailError);
     }
 
-    // 6. Notify admin
+    // 7. Notify admin
     try {
       await resend.emails.send({
         from:

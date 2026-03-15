@@ -45,7 +45,7 @@ CREATE TABLE entities (
 -- Subscriptions table
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
   stripe_subscription_id TEXT UNIQUE,
   stripe_price_id TEXT,
   plan plan_type NOT NULL DEFAULT 'essential',
@@ -129,11 +129,15 @@ BEGIN
   INSERT INTO profiles (id, email, full_name, company_name, role)
   VALUES (
     NEW.id,
-    NEW.email,
+    COALESCE(NEW.email, ''),
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     COALESCE(NEW.raw_user_meta_data->>'company_name', ''),
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'client')
-  );
+    'client'::user_role
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE LOG 'handle_new_user error: %', SQLERRM;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

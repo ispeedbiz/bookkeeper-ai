@@ -28,12 +28,12 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const subscriptionId = session.subscription as string;
-      const customerId = session.customer as string;
+      const subscriptionId = session.subscription as string | null;
+      const customerId = session.customer as string | null;
       const userId = session.metadata?.userId;
       const planType = session.metadata?.planType || "essential";
 
-      if (!userId || !subscriptionId) break;
+      if (!userId || !subscriptionId || !customerId) break;
 
       // Fetch full subscription details
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -171,6 +171,8 @@ export async function POST(request: Request) {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
 
+      if (!customerId) break;
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
@@ -181,7 +183,7 @@ export async function POST(request: Request) {
         await supabase.from("activities").insert({
           user_id: profile.id,
           type: "payment_received",
-          description: `Payment of ${((invoice.amount_due || 0) / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} failed — please update payment method`,
+          description: `⚠️ Payment of ${((invoice.amount_due || 0) / 100).toFixed(2)} ${(invoice.currency || "cad").toUpperCase()} failed — please update payment method`,
           metadata: {
             invoiceId: invoice.id,
             amount: invoice.amount_due,
