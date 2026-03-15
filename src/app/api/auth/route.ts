@@ -1,52 +1,85 @@
 import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
- * POST /api/auth - Demo authentication endpoint.
- *
- * In production, replace with Clerk or NextAuth.js integration.
- * Supports role-based login for: client, cpa, admin, employee.
+ * GET /api/auth — Profile lookup helper.
+ * Returns the current user's profile (role, name, etc.)
+ * Used by client-side code after sign-in to determine the redirect target.
  */
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const { email, password, role } = await request.json();
+    const supabase = await createServerSupabaseClient();
 
-    if (!email || !password) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
+        { error: "Not authenticated" },
+        { status: 401 }
       );
     }
 
-    // Demo authentication - replace with real auth provider
-    const demoUsers: Record<string, { name: string; role: string }> = {
-      "client@demo.com": { name: "Demo Client", role: "client" },
-      "cpa@demo.com": { name: "Demo CPA Firm", role: "cpa" },
-      "admin@demo.com": { name: "Admin User", role: "admin" },
-    };
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, role, company_name, avatar_url, onboarding_completed")
+      .eq("id", user.id)
+      .single();
 
-    const user = demoUsers[email];
-
-    if (user && password === "demo123") {
-      return NextResponse.json({
-        user: {
-          id: `user_${Date.now()}`,
-          email,
-          name: user.name,
-          role: role || user.role,
-        },
-        redirectTo:
-          (role || user.role) === "cpa"
-            ? "/cpa"
-            : (role || user.role) === "admin"
-              ? "/admin"
-              : "/dashboard",
-      });
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { error: "Profile not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    const redirectTo =
+      profile.role === "admin"
+        ? "/admin"
+        : profile.role === "cpa"
+          ? "/cpa"
+          : "/dashboard";
+
+    return NextResponse.json({
+      user: {
+        id: profile.id,
+        email: profile.email,
+        name: profile.full_name,
+        role: profile.role,
+        companyName: profile.company_name,
+        avatarUrl: profile.avatar_url,
+        onboardingCompleted: profile.onboarding_completed,
+      },
+      redirectTo,
+    });
   } catch {
     return NextResponse.json(
-      { error: "Authentication failed" },
+      { error: "Authentication check failed" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/auth — Sign out helper.
+ * Signs out the current user server-side.
+ */
+export async function POST(request: Request) {
+  try {
+    const { action } = await request.json();
+
+    if (action === "signout") {
+      const supabase = await createServerSupabaseClient();
+      await supabase.auth.signOut();
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch {
+    return NextResponse.json(
+      { error: "Request failed" },
       { status: 500 }
     );
   }

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Fetch profile role to determine redirect
+      // Verify admin role
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -50,15 +50,15 @@ export default function LoginPage() {
         .eq("id", user.id)
         .single();
 
-      const role = profile?.role || "client";
-
-      if (role === "admin") {
-        router.push("/admin");
-      } else if (role === "cpa") {
-        router.push("/cpa");
-      } else {
-        router.push("/dashboard");
+      if (profile?.role !== "admin") {
+        // Sign out non-admin user
+        await supabase.auth.signOut();
+        setError("Access denied. Admin credentials required.");
+        setLoading(false);
+        return;
       }
+
+      router.push("/admin");
     } catch {
       setError("Network error. Please try again.");
       setLoading(false);
@@ -77,7 +77,15 @@ export default function LoginPage() {
           >
             BookkeeperAI
           </Link>
-          <p className="mt-2 text-slate-400">Sign in to your account</p>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <h1 className="text-xl font-semibold text-white">Admin Access</h1>
+            <span className="rounded-full bg-coral-500/20 px-3 py-0.5 text-xs font-medium text-coral-400 border border-coral-500/30">
+              Admin
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-400">
+            Restricted to authorized administrators
+          </p>
         </div>
 
         <form
@@ -93,7 +101,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-300">
-                Email
+                Admin Email
               </label>
               <input
                 type="email"
@@ -101,7 +109,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-navy-600 bg-navy-800/50 px-4 py-3 text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50"
-                placeholder="you@company.com"
+                placeholder="admin@bookkeeper-ai.com"
                 disabled={loading}
               />
             </div>
@@ -117,7 +125,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-navy-600 bg-navy-800/50 px-4 py-3 pr-12 text-white placeholder-slate-500 outline-none transition-colors focus:border-teal-400/50"
-                  placeholder="Enter password"
+                  placeholder="Enter admin password"
                   disabled={loading}
                 />
                 <button
@@ -135,19 +143,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-slate-400">
-              <input
-                type="checkbox"
-                className="rounded border-navy-600 bg-navy-800"
-              />
-              Remember me
-            </label>
-            <a href="#" className="text-teal-400 hover:text-teal-300">
-              Forgot password?
-            </a>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -156,24 +151,20 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Signing In...
+                Verifying...
               </>
             ) : (
               <>
-                <LogIn className="h-4 w-4" />
-                Sign In
+                <Shield className="h-4 w-4" />
+                Sign In as Admin
               </>
             )}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-400">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/get-started"
-            className="text-teal-400 hover:text-teal-300"
-          >
-            Start Free Trial
+        <p className="mt-6 text-center text-sm text-slate-500">
+          <Link href="/" className="hover:text-slate-400 transition-colors">
+            &larr; Back to site
           </Link>
         </p>
       </div>
