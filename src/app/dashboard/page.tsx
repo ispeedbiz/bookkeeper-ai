@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   FileText,
   Clock,
@@ -8,35 +10,239 @@ import {
   Upload,
   BarChart3,
   MessageSquare,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
+  CreditCard,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import { createClient } from "@/lib/supabase/client";
 
-const statusCards = [
-  { label: "Documents Pending", value: "12", icon: FileText, color: "text-gold-400", bg: "bg-gold-400/10" },
-  { label: "In Processing", value: "8", icon: Clock, color: "text-cyan-400", bg: "bg-cyan-400/10" },
-  { label: "Completed", value: "45", icon: CheckCircle, color: "text-teal-400", bg: "bg-teal-400/10" },
-  { label: "Alerts", value: "3", icon: AlertTriangle, color: "text-coral-400", bg: "bg-coral-400/10" },
-];
+interface Profile {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
 
-const financials = [
-  { label: "Revenue (MTD)", value: "$142,500", change: "+12.3%", up: true, icon: DollarSign },
-  { label: "Expenses (MTD)", value: "$89,200", change: "+5.1%", up: true, icon: TrendingUp },
-  { label: "Net Income", value: "$53,300", change: "+18.7%", up: true, icon: TrendingDown },
-];
+interface DocumentCounts {
+  uploaded: number;
+  processing: number;
+  reviewed: number;
+  approved: number;
+  rejected: number;
+}
 
-const activities = [
-  { text: "March bank reconciliation completed", time: "2 hours ago", type: "success" },
-  { text: "3 invoices categorized by AI", time: "4 hours ago", type: "info" },
-  { text: "Missing receipt flagged for Feb expense", time: "1 day ago", type: "warning" },
-  { text: "February P&L report ready", time: "2 days ago", type: "success" },
-  { text: "New payroll processing started", time: "3 days ago", type: "info" },
-];
+interface Activity {
+  id: string;
+  type: string;
+  description: string;
+  created_at: string;
+}
+
+interface Subscription {
+  plan: string | null;
+  status: string | null;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+}
 
 export default function DashboardPage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [docCounts, setDocCounts] = useState<DocumentCounts>({
+    uploaded: 0,
+    processing: 0,
+    reviewed: 0,
+    approved: 0,
+    rejected: 0,
+  });
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function fetchDashboardData() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch profile
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .eq("id", user.id)
+          .single();
+
+        if (profileData) {
+          setProfile(profileData);
+        } else {
+          setProfile({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || null,
+            email: user.email || "",
+          });
+        }
+
+        // Fetch user's entities
+        const { data: entities } = await supabase
+          .from("entities")
+          .select("id")
+          .eq("user_id", user.id);
+
+        const entityIds = entities?.map((e) => e.id) || [];
+
+        // Fetch document counts by status
+        if (entityIds.length > 0) {
+          const { data: docs } = await supabase
+            .from("documents")
+            .select("status")
+            .in("entity_id", entityIds);
+
+          if (docs) {
+            const counts: DocumentCounts = {
+              uploaded: 0,
+              processing: 0,
+              reviewed: 0,
+              approved: 0,
+              rejected: 0,
+            };
+            docs.forEach((doc) => {
+              const status = doc.status as keyof DocumentCounts;
+              if (status in counts) {
+                counts[status]++;
+              }
+            });
+            setDocCounts(counts);
+          }
+        }
+
+        // Fetch recent activities
+        const { data: activityData } = await supabase
+          .from("activities")
+          .select("id, type, description, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (activityData) {
+          setActivities(activityData);
+        }
+
+        // Fetch subscription
+        const { data: subData } = await supabase
+          .from("subscriptions")
+          .select("plan, status, trial_ends_at, current_period_end")
+          .eq("user_id", user.id)
+          .single();
+
+        if (subData) {
+          setSubscription(subData);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  const totalDocs =
+    docCounts.uploaded +
+    docCounts.processing +
+    docCounts.reviewed +
+    docCounts.approved +
+    docCounts.rejected;
+
+  const pendingCount = docCounts.uploaded;
+  const processingCount = docCounts.processing;
+  const completedCount = docCounts.approved + docCounts.reviewed;
+  const alertCount = docCounts.rejected;
+
+  const statusCards = [
+    {
+      label: "Documents Pending",
+      value: pendingCount,
+      icon: FileText,
+      color: "text-gold-400",
+      bg: "bg-gold-400/10",
+    },
+    {
+      label: "In Processing",
+      value: processingCount,
+      icon: Clock,
+      color: "text-cyan-400",
+      bg: "bg-cyan-400/10",
+    },
+    {
+      label: "Completed",
+      value: completedCount,
+      icon: CheckCircle,
+      color: "text-teal-400",
+      bg: "bg-teal-400/10",
+    },
+    {
+      label: "Alerts",
+      value: alertCount,
+      icon: AlertTriangle,
+      color: "text-coral-400",
+      bg: "bg-coral-400/10",
+    },
+  ];
+
+  function formatTimeAgo(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString();
+  }
+
+  function getActivityType(type: string): "success" | "warning" | "info" {
+    if (type === "document_approved" || type === "document_reviewed") return "success";
+    if (type === "document_rejected") return "warning";
+    return "info";
+  }
+
+  function formatPlan(plan: string | null): string {
+    if (!plan) return "Free";
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
+  }
+
+  function formatSubscriptionStatus(status: string | null): string {
+    if (!status) return "Inactive";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  const currentMonth = new Date().toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-navy-950">
+        <Sidebar active="Overview" />
+        <main className="ml-64 flex flex-1 items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+            <p className="text-slate-400">Loading your dashboard...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-navy-950">
       <Sidebar active="Overview" />
@@ -45,7 +251,10 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">
-            Welcome back, <span className="text-teal-400">Demo User</span>
+            Welcome back,{" "}
+            <span className="text-teal-400">
+              {profile?.full_name || profile?.email?.split("@")[0] || "there"}
+            </span>
           </h1>
           <p className="mt-1 text-slate-400">
             Here&apos;s what&apos;s happening with your books today.
@@ -67,51 +276,88 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Financial Summary */}
+        {/* Subscription Summary */}
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          {financials.map((f) => (
-            <div key={f.label} className="glass-card rounded-xl p-5">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-teal-500/10 p-2">
-                  <f.icon className="h-5 w-5 text-teal-400" />
-                </div>
-                <span className="text-sm text-slate-400">{f.label}</span>
+          <div className="glass-card rounded-xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-teal-500/10 p-2">
+                <CreditCard className="h-5 w-5 text-teal-400" />
               </div>
-              <div className="mt-3 flex items-baseline gap-3">
-                <span className="text-2xl font-bold text-white">{f.value}</span>
-                <span
-                  className={`flex items-center gap-0.5 text-sm font-medium ${
-                    f.up ? "text-teal-400" : "text-coral-400"
-                  }`}
-                >
-                  <ArrowUpRight className="h-3 w-3" />
-                  {f.change}
-                </span>
-              </div>
+              <span className="text-sm text-slate-400">Current Plan</span>
             </div>
-          ))}
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className="text-2xl font-bold text-white">
+                {formatPlan(subscription?.plan ?? null)}
+              </span>
+              <span className="flex items-center gap-0.5 text-sm font-medium text-teal-400">
+                <ArrowUpRight className="h-3 w-3" />
+                Active
+              </span>
+            </div>
+          </div>
+          <div className="glass-card rounded-xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-cyan-400/10 p-2">
+                <FileText className="h-5 w-5 text-cyan-400" />
+              </div>
+              <span className="text-sm text-slate-400">Total Documents</span>
+            </div>
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className="text-2xl font-bold text-white">{totalDocs}</span>
+              <span className="text-sm text-slate-400">all time</span>
+            </div>
+          </div>
+          <div className="glass-card rounded-xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-gold-400/10 p-2">
+                <Clock className="h-5 w-5 text-gold-400" />
+              </div>
+              <span className="text-sm text-slate-400">Subscription Status</span>
+            </div>
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className="text-2xl font-bold text-white">
+                {formatSubscriptionStatus(subscription?.status ?? null)}
+              </span>
+              {subscription?.trial_ends_at && (
+                <span className="text-sm text-gold-400">
+                  Trial ends{" "}
+                  {new Date(subscription.trial_ends_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-5">
           {/* Quick Actions */}
           <div className="lg:col-span-2">
-            <h2 className="mb-4 text-lg font-semibold text-white">Quick Actions</h2>
+            <h2 className="mb-4 text-lg font-semibold text-white">
+              Quick Actions
+            </h2>
             <div className="space-y-3">
-              {[
-                { label: "Upload Document", icon: Upload, color: "bg-teal-500/10 text-teal-400" },
-                { label: "View Reports", icon: BarChart3, color: "bg-cyan-400/10 text-cyan-400" },
-                { label: "Message Bookkeeper", icon: MessageSquare, color: "bg-gold-400/10 text-gold-400" },
-              ].map((action) => (
-                <button
-                  key={action.label}
-                  className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50"
-                >
-                  <div className={`rounded-lg p-2 ${action.color}`}>
-                    <action.icon className="h-5 w-5" />
-                  </div>
-                  <span className="font-medium text-white">{action.label}</span>
-                </button>
-              ))}
+              <Link
+                href="/dashboard/documents"
+                className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50"
+              >
+                <div className="rounded-lg bg-teal-500/10 p-2 text-teal-400">
+                  <Upload className="h-5 w-5" />
+                </div>
+                <span className="font-medium text-white">Upload Document</span>
+              </Link>
+              <button className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50">
+                <div className="rounded-lg bg-cyan-400/10 p-2 text-cyan-400">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <span className="font-medium text-white">View Reports</span>
+              </button>
+              <button className="flex w-full items-center gap-4 rounded-xl border border-navy-700/50 bg-navy-900/50 px-5 py-4 text-left transition-all hover:border-teal-400/20 hover:bg-navy-800/50">
+                <div className="rounded-lg bg-gold-400/10 p-2 text-gold-400">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <span className="font-medium text-white">
+                  Message Bookkeeper
+                </span>
+              </button>
             </div>
           </div>
 
@@ -120,24 +366,40 @@ export default function DashboardPage() {
             <h2 className="mb-4 text-lg font-semibold text-white">
               Recent Activity
             </h2>
-            <div className="glass-card rounded-xl divide-y divide-navy-700/30">
-              {activities.map((activity, i) => (
-                <div key={i} className="flex items-start gap-3 px-5 py-4">
-                  <div
-                    className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                      activity.type === "success"
-                        ? "bg-teal-400"
-                        : activity.type === "warning"
-                          ? "bg-gold-400"
-                          : "bg-cyan-400"
-                    }`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-white">{activity.text}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{activity.time}</p>
-                  </div>
+            <div className="glass-card divide-y divide-navy-700/30 rounded-xl">
+              {activities.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-sm text-slate-400">
+                    No recent activity yet. Upload your first document to get
+                    started.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                activities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 px-5 py-4"
+                  >
+                    <div
+                      className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                        getActivityType(activity.type) === "success"
+                          ? "bg-teal-400"
+                          : getActivityType(activity.type) === "warning"
+                            ? "bg-gold-400"
+                            : "bg-cyan-400"
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-white">
+                        {activity.description}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {formatTimeAgo(activity.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -145,16 +407,36 @@ export default function DashboardPage() {
         {/* Processing Pipeline */}
         <div className="mt-8">
           <h2 className="mb-4 text-lg font-semibold text-white">
-            Bookkeeping Pipeline - March 2026
+            Bookkeeping Pipeline - {currentMonth}
           </h2>
           <div className="glass-card rounded-xl p-6">
             <div className="flex items-center justify-between">
               {[
-                { step: "Documents Received", count: 12, active: true },
-                { step: "AI Processing", count: 5, active: true },
-                { step: "Bookkeeper Review", count: 3, active: false },
-                { step: "QA Check", count: 0, active: false },
-                { step: "Complete", count: 45, active: false },
+                {
+                  step: "Documents Received",
+                  count: docCounts.uploaded,
+                  active: docCounts.uploaded > 0,
+                },
+                {
+                  step: "AI Processing",
+                  count: docCounts.processing,
+                  active: docCounts.processing > 0,
+                },
+                {
+                  step: "Bookkeeper Review",
+                  count: docCounts.reviewed,
+                  active: false,
+                },
+                {
+                  step: "QA Check",
+                  count: 0,
+                  active: false,
+                },
+                {
+                  step: "Complete",
+                  count: docCounts.approved,
+                  active: false,
+                },
               ].map((s, i) => (
                 <div key={s.step} className="flex items-center">
                   <div className="text-center">

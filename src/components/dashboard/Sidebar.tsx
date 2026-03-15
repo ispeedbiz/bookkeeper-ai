@@ -1,35 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
-  Building2,
   FileText,
-  BarChart3,
-  MessageSquare,
-  CheckCircle,
   CreditCard,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
   User,
+  Loader2,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+interface Entity {
+  id: string;
+  name: string;
+}
+
+interface UserProfile {
+  full_name: string | null;
+  email: string;
+}
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Entities", icon: Building2, href: "/dashboard" },
   { label: "Documents", icon: FileText, href: "/dashboard/documents" },
-  { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
-  { label: "Messages", icon: MessageSquare, href: "/dashboard/messages" },
-  { label: "Reconciliation", icon: CheckCircle, href: "/dashboard" },
-  { label: "Billing", icon: CreditCard, href: "/dashboard" },
-  { label: "Settings", icon: Settings, href: "/dashboard" },
+  { label: "Billing", icon: CreditCard, href: "/dashboard/billing" },
+  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 export default function Sidebar({ active = "Overview" }: { active?: string }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [selectedEntity, setSelectedEntity] = useState<string>("");
+  const [loggingOut, setLoggingOut] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function fetchUserData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData) {
+        setProfile(profileData);
+      } else {
+        setProfile({
+          full_name: user.user_metadata?.full_name || null,
+          email: user.email || "",
+        });
+      }
+
+      // Fetch entities
+      const { data: entityData } = await supabase
+        .from("entities")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (entityData && entityData.length > 0) {
+        setEntities(entityData);
+        setSelectedEntity(entityData[0].id);
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   return (
     <aside
@@ -59,12 +117,23 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
       {/* Entity Switcher */}
       {!collapsed && (
         <div className="border-b border-navy-700/50 p-4">
-          <select className="w-full rounded-lg border border-navy-600 bg-navy-800 px-3 py-2 text-sm text-white outline-none focus:border-teal-400/50">
-            <option>Acme Corp</option>
-            <option>Beta Industries</option>
-            <option>Gamma Holdings</option>
-            <option>+ Add Entity</option>
-          </select>
+          {entities.length > 0 ? (
+            <select
+              value={selectedEntity}
+              onChange={(e) => setSelectedEntity(e.target.value)}
+              className="w-full rounded-lg border border-navy-600 bg-navy-800 px-3 py-2 text-sm text-white outline-none focus:border-teal-400/50"
+            >
+              {entities.map((entity) => (
+                <option key={entity.id} value={entity.id}>
+                  {entity.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="rounded-lg border border-navy-600 bg-navy-800 px-3 py-2 text-sm text-slate-500">
+              No entities yet
+            </div>
+          )}
         </div>
       )}
 
@@ -102,14 +171,27 @@ export default function Sidebar({ active = "Overview" }: { active?: string }) {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">Demo User</p>
-              <p className="truncate text-xs text-slate-500">client@demo.com</p>
+              <p className="truncate text-sm font-medium text-white">
+                {profile?.full_name || profile?.email?.split("@")[0] || "User"}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {profile?.email || ""}
+              </p>
             </div>
           )}
           {!collapsed && (
-            <Link href="/login" className="text-slate-500 hover:text-coral-400">
-              <LogOut className="h-4 w-4" />
-            </Link>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="text-slate-500 hover:text-coral-400 disabled:opacity-50"
+              title="Sign out"
+            >
+              {loggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+            </button>
           )}
         </div>
       </div>
