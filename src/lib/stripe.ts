@@ -60,9 +60,35 @@ export const STRIPE_PLANS = {
       interval: "month" as const,
     },
   },
+  payroll: {
+    starter: {
+      name: "Payroll Starter",
+      priceId: process.env.STRIPE_PAYROLL_STARTER_PRICE_ID || "",
+      amount: 9900, // CAD $99.00
+      currency: "cad",
+      interval: "month" as const,
+      employeeLimit: 10,
+    },
+    pro: {
+      name: "Payroll Pro",
+      priceId: process.env.STRIPE_PAYROLL_PRO_PRICE_ID || "",
+      amount: 19900, // CAD $199.00
+      currency: "cad",
+      interval: "month" as const,
+      employeeLimit: 50,
+    },
+    enterprise: {
+      name: "Payroll Enterprise",
+      priceId: process.env.STRIPE_PAYROLL_ENTERPRISE_PRICE_ID || "",
+      amount: 39900, // CAD $399.00
+      currency: "cad",
+      interval: "month" as const,
+      employeeLimit: Infinity,
+    },
+  },
   addons: {
     payroll: {
-      name: "Payroll Processing",
+      name: "Payroll Processing Add-On",
       priceId: process.env.STRIPE_PAYROLL_PRICE_ID || "",
       amount: 9900,
       currency: "cad",
