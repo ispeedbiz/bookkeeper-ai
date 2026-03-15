@@ -30,6 +30,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate file type
+    const ALLOWED_MIME_TYPES = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+      "text/plain",
+      "text/csv",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // xlsx
+      "application/vnd.ms-excel", // xls
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+      "application/msword", // doc
+    ];
+    const ALLOWED_EXTENSIONS = /\.(pdf|jpg|jpeg|png|gif|webp|heic|txt|csv|xlsx|xls|docx|doc)$/i;
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type) && !ALLOWED_EXTENSIONS.test(file.name)) {
+      return NextResponse.json(
+        { error: "File type not allowed. Please upload PDF, images, text, CSV, or Office documents." },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size is 25 MB." },
+        { status: 400 }
+      );
+    }
+
     // Verify entity belongs to user
     const { data: entity } = await supabase
       .from("entities")

@@ -12,6 +12,27 @@ const PUBLIC_ROUTES = [
   "/admin/login",
 ];
 
+// Security headers applied to all responses
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains"
+  );
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()"
+  );
+  response.headers.set(
+    "Content-Security-Policy",
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+  );
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -22,23 +43,28 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.match(/\.(ico|svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf|css|js|map)$/)
   ) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    return addSecurityHeaders(response);
   }
 
   // Allow public routes
   if (PUBLIC_ROUTES.includes(pathname)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    return addSecurityHeaders(response);
   }
 
   // Update session and get user
   const { supabaseResponse, user, supabase } = await updateSession(request);
+
+  // Add security headers to supabase response
+  addSecurityHeaders(supabaseResponse);
 
   // Not authenticated
   if (!user) {
     const loginUrl = pathname.startsWith("/admin")
       ? new URL("/admin/login", request.url)
       : new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    return addSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
   // Fetch profile role
@@ -53,21 +79,27 @@ export async function middleware(request: NextRequest) {
   // Admin routes: admin only
   if (pathname.startsWith("/admin")) {
     if (role !== "admin") {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/admin/login", request.url))
+      );
     }
   }
 
   // CPA routes: cpa or admin
   if (pathname.startsWith("/cpa")) {
     if (role !== "cpa" && role !== "admin") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/login", request.url))
+      );
     }
   }
 
   // Dashboard routes: client, cpa, or admin
   if (pathname.startsWith("/dashboard")) {
     if (role !== "client" && role !== "cpa" && role !== "admin") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/login", request.url))
+      );
     }
   }
 

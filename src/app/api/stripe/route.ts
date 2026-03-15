@@ -20,11 +20,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const { priceId, planType } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body. JSON is required." },
+        { status: 400 }
+      );
+    }
+
+    const { priceId, planType } = body || {};
 
     if (!priceId) {
       return NextResponse.json(
         { error: "Price ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate priceId format (Stripe price IDs start with "price_")
+    if (typeof priceId !== "string" || !priceId.startsWith("price_")) {
+      return NextResponse.json(
+        { error: "Invalid Price ID format" },
         { status: 400 }
       );
     }

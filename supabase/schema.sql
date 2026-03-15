@@ -177,13 +177,15 @@ CREATE POLICY "Users can delete own entities" ON entities FOR DELETE USING (user
 
 -- Subscriptions policies
 CREATE POLICY "Users can view own subscription" ON subscriptions FOR SELECT USING (user_id = auth.uid() OR is_admin());
-CREATE POLICY "Service role manages subscriptions" ON subscriptions FOR ALL USING (TRUE);
+CREATE POLICY "Users can insert own subscription" ON subscriptions FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Users can update own subscription" ON subscriptions FOR UPDATE USING (user_id = auth.uid() OR is_admin());
+CREATE POLICY "Admins can delete subscriptions" ON subscriptions FOR DELETE USING (is_admin());
 
 -- Documents policies
 CREATE POLICY "Users can view own documents" ON documents FOR SELECT USING (user_id = auth.uid() OR is_admin());
 CREATE POLICY "Users can upload documents" ON documents FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "Users can delete own documents" ON documents FOR DELETE USING (user_id = auth.uid());
-CREATE POLICY "Admins can update documents" ON documents FOR UPDATE USING (is_admin());
+CREATE POLICY "Users and admins can update documents" ON documents FOR UPDATE USING (user_id = auth.uid() OR is_admin());
 
 -- Activities policies
 CREATE POLICY "Users can view own activities" ON activities FOR SELECT USING (user_id = auth.uid() OR is_admin());
