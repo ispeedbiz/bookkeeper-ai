@@ -6,7 +6,7 @@ const FOOTER_LINKS = {
   Services: [
     { label: "Bookkeeping", href: "/#services" },
     { label: "Reconciliations", href: "/#services" },
-    { label: "Payroll Services", href: "/pricing?tab=payroll" },
+    { label: "Payroll Services", href: "/payroll" },
     { label: "AI Analytics", href: "/#services" },
     { label: "Tax Support", href: "/#services" },
     { label: "Compliance & Risk", href: "/#services" },
@@ -14,23 +14,18 @@ const FOOTER_LINKS = {
   Company: [
     { label: "About Us", href: "/about" },
     { label: "Our Team", href: "/about#team" },
-    { label: "Careers", href: "/careers" },
-    { label: "Blog", href: "/blog" },
     { label: "Contact", href: "/contact" },
+    { label: "Get Started", href: "/get-started" },
   ],
   Resources: [
     { label: "For CPA Firms", href: "/#for-cpas" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Case Studies", href: "/case-studies" },
-    { label: "Help Center", href: "/help" },
-    { label: "API Docs", href: "/api-docs" },
+    { label: "Payroll Plans", href: "/payroll#pricing" },
+    { label: "Login", href: "/login" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
-    { label: "Security", href: "/security" },
-    { label: "SOC 2 Compliance", href: "/soc2" },
-    { label: "Cookie Policy", href: "/cookies" },
   ],
 };
 
@@ -63,18 +58,11 @@ export default function Footer() {
             {/* Contact info */}
             <div className="mt-6 space-y-3">
               <a
-                href={`tel:${COMPANY.phone.us}`}
+                href={`tel:${COMPANY.phone}`}
                 className="flex items-center gap-2.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
               >
                 <Phone className="h-4 w-4 text-teal-400/60" />
-                {COMPANY.phone.us}
-              </a>
-              <a
-                href={`tel:${COMPANY.phone.india}`}
-                className="flex items-center gap-2.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
-              >
-                <Phone className="h-4 w-4 text-teal-400/60" />
-                {COMPANY.phone.india}
+                {COMPANY.phone}
               </a>
               <a
                 href={`mailto:${COMPANY.email}`}

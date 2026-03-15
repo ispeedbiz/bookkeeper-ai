@@ -226,8 +226,7 @@ export default function ContactPage() {
                     <Phone className="mt-1 h-5 w-5 text-teal-400" />
                     <div>
                       <p className="text-sm text-slate-400">Phone</p>
-                      <p className="text-white">{COMPANY.phone.us}</p>
-                      <p className="text-white">{COMPANY.phone.india}</p>
+                      <p className="text-white">{COMPANY.phone}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">

@@ -30,7 +30,7 @@ function layout(content: string): string {
               ${COMPANY.address}
             </p>
             <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
-              ${COMPANY.phone.us} | ${COMPANY.email}
+              ${COMPANY.phone} | ${COMPANY.email}
             </p>
           </td>
         </tr>

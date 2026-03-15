@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             <p style="margin:0 0 12px;">We've received your message and our team will get back to you within 24 hours.</p>
             <p style="margin:0 0 12px;">In the meantime, feel free to explore our website or reach out directly:</p>
             <ul style="margin:0 0 12px;padding-left:20px;">
-              <li style="margin-bottom:8px;">Phone: ${COMPANY.phone.us}</li>
+              <li style="margin-bottom:8px;">Phone: ${COMPANY.phone}</li>
               <li style="margin-bottom:8px;">Email: <a href="mailto:${COMPANY.email}" style="color:#14b8a6;">${COMPANY.email}</a></li>
             </ul>
             <p style="margin:0;">We look forward to speaking with you!</p>
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         <tr>
           <td style="background-color:#f8fafc;padding:24px 32px;border-top:1px solid #e2e8f0;">
             <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
-              ${COMPANY.name} | ${COMPANY.address} | ${COMPANY.phone.us}
+              ${COMPANY.name} | ${COMPANY.address} | ${COMPANY.phone}
             </p>
           </td>
         </tr>

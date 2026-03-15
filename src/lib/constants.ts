@@ -3,10 +3,7 @@ export const COMPANY = {
   tagline: "Your AI Bookkeeper That Never Sleeps",
   description:
     "AI-powered bookkeeping & payroll outsourcing platform connecting CPAs and businesses with expert offshore accountants. Clean books delivered in 3 business days.",
-  phone: {
-    india: "+91 95 575 99 575",
-    us: "+1 (437) 256-0007",
-  },
+  phone: "+1 (437) 256-1007",
   email: "support@bookkeeperai.ca",
   website: "bookkeeperai.ca",
   address: "Mississauga, Canada | Satellite, Ahmedabad, Gujarat, INDIA",
